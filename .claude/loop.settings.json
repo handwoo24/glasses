@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "deny": [
+      "Bash(*firestore.googleapis.com*)",
+      "Bash(*gcloud firestore*)",
+      "Bash(*firebase firestore*)",
+      "Bash(*firebase deploy*)",
+      "Bash(*gcloud storage rm*)",
+      "Bash(*gsutil rm*)",
+      "Bash(*storage.googleapis.com*DELETE*)",
+      "Bash(*git commit*)",
+      "Bash(*git push*)"
+    ]
+  }
+}
