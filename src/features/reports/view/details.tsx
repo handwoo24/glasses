@@ -4,7 +4,14 @@ import { answerCounts } from '../assessment'
 import type { Assessment, ClassifiedCheck } from '../assessment'
 import { Cite } from '../components/cite'
 import { formatDate, formatWon } from '../format'
-import type { Contract, Report, RiskSignal } from '../schema'
+import {
+  DISCLOSURE_LABEL as DISCLOSURE,
+  OVERSIGHT_LABEL as OVERSIGHT,
+  SEVERITY_LABEL as SEVERITY,
+  SIGNAL_LABEL as SIGNAL,
+} from '../labels'
+import type { ReportDoc } from '../report-doc'
+import type { Contract, RiskSignal } from '../schema'
 import {
   AxisDefinitions,
   EVIDENCE_RULE_NOTE,
@@ -14,25 +21,6 @@ import {
   THRESHOLD_NOTE,
 } from './method-parts'
 import { AnswerBadge, Fold, StatusBadge } from './parts'
-
-const SEVERITY = {
-  high: '중요도 높음',
-  medium: '중요도 보통',
-  low: '중요도 낮음',
-}
-const SIGNAL = { detected: '해당', clear: '해당 없음', unknown: '확인 못 함' }
-const OVERSIGHT = {
-  done: '점검함',
-  partial: '일부',
-  none: '기록 없음',
-  unknown: '확인 못 함',
-}
-const DISCLOSURE = {
-  public: '공개',
-  partial: '일부 공개',
-  missing: '공개 자료에서 찾지 못함',
-  unknown: '확인 못 함',
-}
 
 interface ChecksFoldProps {
   checks: ReadonlyArray<ClassifiedCheck>
@@ -143,7 +131,7 @@ export function MethodFold({ typeNote, indicators }: MethodFoldProps) {
 export function BudgetBasisFold({
   basis,
 }: {
-  basis: NonNullable<Report['budgetBasis']>
+  basis: NonNullable<ReportDoc['budgetBasis']>
 }) {
   return (
     <Fold title="예산이 정해진 과정" summary={`${basis.steps.length}단계`}>
@@ -195,7 +183,7 @@ function contractRows(k: Contract): Array<[string, string]> {
 export function ContractsFold({
   contracts,
 }: {
-  contracts: NonNullable<Report['contracts']>
+  contracts: NonNullable<ReportDoc['contracts']>
 }) {
   return (
     <Fold title="계약 상세" summary={`${contracts.items.length}건`}>
@@ -226,7 +214,7 @@ export function ContractsFold({
   )
 }
 
-export function OversightFold({ items }: { items: Report['oversight'] }) {
+export function OversightFold({ items }: { items: ReportDoc['oversight'] }) {
   return (
     <Fold title="감사·점검 이력" summary={`${items.length}건`}>
       <ul className="rows">
@@ -250,7 +238,7 @@ export function OversightFold({ items }: { items: Report['oversight'] }) {
   )
 }
 
-export function DisclosureFold({ items }: { items: Report['disclosure'] }) {
+export function DisclosureFold({ items }: { items: ReportDoc['disclosure'] }) {
   return (
     <Fold title="공개 문서 현황" summary={`${items.length}건`}>
       <ul className="rows">
@@ -268,7 +256,7 @@ export function DisclosureFold({ items }: { items: Report['disclosure'] }) {
   )
 }
 
-export function TimelineFold({ items }: { items: Report['timeline'] }) {
+export function TimelineFold({ items }: { items: ReportDoc['timeline'] }) {
   return (
     <Fold title="진행 경과" summary={`${items.length}건`}>
       <ul className="tl">

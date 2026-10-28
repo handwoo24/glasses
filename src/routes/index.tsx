@@ -1,5 +1,5 @@
 import { Link, createFileRoute } from '@tanstack/react-router'
-import { assessments } from '#/content/assessments'
+import { reportDocs } from '#/content/report-docs'
 import {
   AXES_VERSION,
   AXIS_IDS,
@@ -23,13 +23,13 @@ function Home() {
           자료만으로 했고, 평가 체계 v{AXES_VERSION}(초안)을 따릅니다.
         </p>
         <div className="cards">
-          {assessments.map((a) => {
+          {reportDocs.map((a) => {
             const { overall, evidence, statuses } = summarize(a)
             return (
               <Link
-                key={a.reportSlug}
+                key={a.slug}
                 to="/reports/$slug"
-                params={{ slug: a.reportSlug }}
+                params={{ slug: a.slug }}
                 className={`card ${STATUS_TONE[overall]}`}
               >
                 <p className="proj">{a.project}</p>

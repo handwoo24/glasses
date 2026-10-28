@@ -4,18 +4,12 @@ import { useMemo } from 'react'
 import type { ReactNode } from 'react'
 import { AXES_VERSION, AXIS_IDS, AXIS_INFO, STATUS_INFO } from '../axes'
 import type { AxisId } from '../axes'
-import {
-  STATUS_TONE,
-  allSources,
-  classifyChecks,
-  overallReason,
-  signalsByAxis,
-  summarize,
-} from '../assessment'
-import type { Assessment, AxisAssessment } from '../assessment'
+import { STATUS_TONE, overallReason, summarize } from '../assessment'
+import type { AxisAssessment } from '../assessment'
 import { Cite, CiteProvider } from '../components/cite'
 import { formatDate } from '../format'
-import type { Report, Source } from '../schema'
+import type { ReportDoc } from '../report-doc'
+import type { Source } from '../schema'
 import {
   BudgetBasisFold,
   ChecksFold,
@@ -36,31 +30,24 @@ import {
 import { RequestBox } from './request-box'
 import { useOpenDetailsOnHash } from './use-open-details-on-hash'
 
-interface ReportPageProps {
-  report: Report
-  assessment: Assessment
-}
-
-export function ReportPage({ report: R, assessment: K }: ReportPageProps) {
+export function ReportPage({ doc: K }: { doc: ReportDoc }) {
   useOpenDetailsOnHash()
-  const sources = useMemo(() => allSources(R, K), [R, K])
+  const { sources } = K
   const sourceIds = useMemo(() => sources.map((s) => s.id), [sources])
   const summary = summarize(K)
-  const checks = classifyChecks(R, K)
-  const signals = signalsByAxis(R, K)
 
   return (
     <CiteProvider sourceIds={sourceIds}>
       <div className="page">
         <article className="sheet">
-          <Head assessment={K} summary={summary} />
+          <Head doc={K} summary={summary} />
           <Panel id="ov" title="사업 개요">
             <Overview overview={K.overview} />
           </Panel>
           <Panel id="use" title={K.side.title}>
             {K.side.body}
           </Panel>
-          <VerdictBlock assessment={K} summary={summary} />
+          <VerdictBlock doc={K} summary={summary} />
           <Panel id="out" title={K.status.title}>
             {K.status.body}
           </Panel>
@@ -118,13 +105,13 @@ export function ReportPage({ report: R, assessment: K }: ReportPageProps) {
             </ul>
           </Panel>
           <Panel id="more" title="자세히 보기">
-            <ChecksFold checks={checks} signals={signals} axes={K.axes} />
+            <ChecksFold checks={K.checks} signals={K.signals} axes={K.axes} />
             <MethodFold typeNote={K.typeNote} indicators={K.axisIndicators} />
-            {R.budgetBasis && <BudgetBasisFold basis={R.budgetBasis} />}
-            {R.contracts && <ContractsFold contracts={R.contracts} />}
-            {R.oversight.length > 0 && <OversightFold items={R.oversight} />}
-            {R.disclosure.length > 0 && <DisclosureFold items={R.disclosure} />}
-            <TimelineFold items={R.timeline} />
+            {K.budgetBasis && <BudgetBasisFold basis={K.budgetBasis} />}
+            {K.contracts && <ContractsFold contracts={K.contracts} />}
+            {K.oversight.length > 0 && <OversightFold items={K.oversight} />}
+            {K.disclosure.length > 0 && <DisclosureFold items={K.disclosure} />}
+            <TimelineFold items={K.timeline} />
           </Panel>
           <Panel id="src" title="출처">
             <SourceList sources={sources} />
@@ -141,13 +128,7 @@ export function ReportPage({ report: R, assessment: K }: ReportPageProps) {
 
 type Summary = ReturnType<typeof summarize>
 
-function Head({
-  assessment: K,
-  summary,
-}: {
-  assessment: Assessment
-  summary: Summary
-}) {
+function Head({ doc: K, summary }: { doc: ReportDoc; summary: Summary }) {
   return (
     <section className="panel" id="head" aria-labelledby="t-head">
       <div className="band">
@@ -178,7 +159,7 @@ function Head({
   )
 }
 
-function Overview({ overview }: { overview: Assessment['overview'] }) {
+function Overview({ overview }: { overview: ReportDoc['overview'] }) {
   return (
     <>
       <div className="ov-cells">
@@ -213,10 +194,10 @@ function Overview({ overview }: { overview: Assessment['overview'] }) {
 }
 
 function VerdictBlock({
-  assessment: K,
+  doc: K,
   summary: { overall, evidence, fixCount },
 }: {
-  assessment: Assessment
+  doc: ReportDoc
   summary: Summary
 }) {
   return (

@@ -1,17 +1,14 @@
 import { createFileRoute, notFound } from '@tanstack/react-router'
-import { getAssessment } from '#/content/assessments'
-import { getReport } from '#/content/reports'
+import { getReportDoc } from '#/content/report-docs'
 import { ReportPage } from '#/features/reports/view/report-page'
 
 export const Route = createFileRoute('/reports/$slug')({
   loader: ({ params }) => {
-    const report = getReport(params.slug)
-    const assessment = getAssessment(params.slug)
-    if (!report || !assessment) throw notFound()
+    if (!getReportDoc(params.slug)) throw notFound()
     return { slug: params.slug }
   },
   head: ({ loaderData }) => {
-    const a = loaderData && getAssessment(loaderData.slug)
+    const a = loaderData && getReportDoc(loaderData.slug)
     return {
       meta: a
         ? [
@@ -38,9 +35,8 @@ export const Route = createFileRoute('/reports/$slug')({
 
 function ReportRoute() {
   const { slug } = Route.useLoaderData()
-  // 평가에는 JSX 조각이 있어 로더 데이터로 직렬화하지 않고 모듈에서 꺼낸다
-  const report = getReport(slug)
-  const assessment = getAssessment(slug)
-  if (!report || !assessment) throw notFound()
-  return <ReportPage report={report} assessment={assessment} />
+  // 리포트에는 렌더링된 본문 조각이 있어 로더 데이터로 직렬화하지 않고 모듈에서 꺼낸다
+  const doc = getReportDoc(slug)
+  if (!doc) throw notFound()
+  return <ReportPage doc={doc} />
 }

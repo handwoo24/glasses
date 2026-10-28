@@ -58,6 +58,10 @@ const httpsUrl = (hosts: ReadonlyArray<string>) =>
 
 const sourceUrl = httpsUrl(ALLOWED_SOURCE_HOSTS)
 const actionUrl = httpsUrl(ALLOWED_ACTION_HOSTS)
+/** 문서 본문에 거는 링크: 출처 도메인이나 시민 안내 도메인의 https 주소만 */
+export const LinkUrlSchema = httpsUrl([
+  ...new Set([...ALLOWED_SOURCE_HOSTS, ...ALLOWED_ACTION_HOSTS]),
+])
 
 export const SourceSchema = z.object({
   id: sourceId,
@@ -399,6 +403,19 @@ const ResponseSchema = z.object({
     .default([]),
 })
 
+export const BudgetBasisSchema = z.object({
+  intro: z.string(),
+  steps: z
+    .array(z.object({ label: z.string(), detail: z.string(), cite }))
+    .min(1),
+})
+
+export const TimelineItemSchema = z.object({
+  date: z.string().regex(/^\d{4}-\d{2}(-\d{2})?$/),
+  label: z.string(),
+  cite,
+})
+
 export const ReportSchema = z
   .object({
     slug: z.string().regex(/^[a-z0-9-]+$/),
@@ -414,33 +431,12 @@ export const ReportSchema = z
     brief: BriefSchema,
     moneyFlow: MoneyFlowSchema.optional(),
     moneyPath: MoneyPathSchema.optional(),
-    budgetBasis: z
-      .object({
-        intro: z.string(),
-        steps: z
-          .array(
-            z.object({
-              label: z.string(),
-              detail: z.string(),
-              cite,
-            }),
-          )
-          .min(1),
-      })
-      .optional(),
+    budgetBasis: BudgetBasisSchema.optional(),
     charts: z.array(ChartSchema).default([]),
     contracts: z
       .object({ intro: z.string(), items: z.array(ContractSchema).min(1) })
       .optional(),
-    timeline: z
-      .array(
-        z.object({
-          date: z.string().regex(/^\d{4}-\d{2}(-\d{2})?$/),
-          label: z.string(),
-          cite,
-        }),
-      )
-      .min(1),
+    timeline: z.array(TimelineItemSchema).min(1),
     /** 판정 바로 밑에 붙는 시민이 알아야 할 것 (중요한 순) */
     points: z.array(PointSchema).min(2).max(5),
     vendors: z.array(VendorSchema).default([]),
@@ -633,6 +629,8 @@ export type MoneyFlow = z.infer<typeof MoneyFlowSchema>
 export type MoneyPath = z.infer<typeof MoneyPathSchema>
 export type Check = z.infer<typeof CheckSchema>
 export type Contract = z.infer<typeof ContractSchema>
+export type BudgetBasis = z.infer<typeof BudgetBasisSchema>
+export type TimelineItem = z.infer<typeof TimelineItemSchema>
 export type Chart = z.infer<typeof ChartSchema>
 export type RiskSignal = z.infer<typeof RiskSignalSchema>
 export type DisclosureItem = z.infer<typeof DisclosureItemSchema>

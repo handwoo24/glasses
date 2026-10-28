@@ -113,43 +113,6 @@ export function councilAppendix(
   }
 }
 
-/** 고양시 계약정보공개시스템 */
-export function cityContract(
-  id: string,
-  title: string,
-  fetched: string,
-): SourceInput {
-  return {
-    id,
-    title,
-    org: '고양특례시 계약정보공개시스템',
-    kind: '계약정보',
-    date: fetched,
-    url: 'https://www.goyang.go.kr/contract/basis/situationList.do',
-    license: '공공기관 계약정보 공개',
-  }
-}
-
-/** 나라장터 입찰공고 첨부 원문 (공고문·제안요청서 등) */
-export function g2bNotice(
-  id: string,
-  date: string,
-  title: string,
-  bidNo: string,
-  ord: string,
-): SourceInput {
-  return {
-    id,
-    title,
-    org: '조달청 나라장터',
-    kind: '공고',
-    date,
-    url: `https://www.g2b.go.kr/pn/pnp/pnpe/UntyAtchFile/downloadFile.do?bidPbancNo=${bidNo}&bidPbancOrd=${ord}&fileType=&fileSeq=1&prcmBsneSeCd=03`,
-    license: '공공기관 입찰정보 공개',
-    locator: `공고번호 ${bidNo}-${ord}`,
-  }
-}
-
 /** 국가법령정보센터 조문. lsiSeq는 법령 판(시행일)마다 다르다. */
 export function lawText(
   id: string,
