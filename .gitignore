@@ -11,3 +11,14 @@ dist-ssr
 .vinxi
 __unconfig*
 todos.json
+
+# 수집 원본(용량 큼) — manifest.json의 URL·해시로 재수집
+resources/**/*.pdf
+resources/**/*.hwp
+resources/**/*.hwpx
+resources/**/text/
+
+# Paraglide 생성물
+src/paraglide
+.gstack/
+resources/goyang-city/_execution/*.html

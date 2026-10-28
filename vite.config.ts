@@ -10,6 +10,10 @@ import { nitro } from 'nitro/vite'
 
 const config = defineConfig({
   resolve: { tsconfigPaths: true },
+  server: {
+    // 수집 자료(resources/)와 빌드 산출물이 바뀔 때 개발 서버가 페이지를 새로고침하지 않게 한다
+    watch: { ignored: ['**/resources/**', '**/.output/**'] },
+  },
   plugins: [
     devtools(),
     paraglideVitePlugin({
