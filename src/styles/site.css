@@ -1,0 +1,123 @@
+/* 앱 껍데기: 사이트 머리, 바닥글, 평가 기준 같은 문서 페이지. 토큰만 쓴다 */
+.site-head {
+  padding-block: var(--sp-4) 0;
+  padding-left: max(var(--sp-4), env(safe-area-inset-left, 0px));
+  padding-right: max(var(--sp-4), env(safe-area-inset-right, 0px));
+}
+.site-head .topbar {
+  margin-bottom: 0;
+  align-items: baseline;
+}
+.site-head .home {
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp-2);
+}
+.site-head .home span {
+  font-size: var(--fs-small);
+  color: var(--muted);
+}
+.site-nav {
+  display: flex;
+  gap: var(--sp-4);
+  font-size: var(--fs-small);
+}
+.site-nav a {
+  color: var(--ink-soft);
+  text-decoration: none;
+  padding-block: var(--sp-1);
+  border-bottom: 2px solid transparent;
+}
+.site-nav a:hover {
+  color: var(--ink);
+}
+.site-nav a.active {
+  color: var(--ink);
+  font-weight: 700;
+  border-bottom-color: var(--blue);
+}
+.skip {
+  position: absolute;
+  left: -9999px;
+}
+.skip:focus {
+  left: var(--sp-4);
+  top: var(--sp-4);
+  z-index: 10;
+  background: var(--paper);
+  padding: var(--sp-2) var(--sp-3);
+  border-radius: var(--r-md);
+}
+.site-foot {
+  padding-block: 0 var(--sp-8);
+  padding-left: max(var(--sp-4), env(safe-area-inset-left, 0px));
+  padding-right: max(var(--sp-4), env(safe-area-inset-right, 0px));
+}
+.site-foot > div {
+  max-width: 1160px;
+  margin: 0 auto;
+  padding-top: var(--sp-6);
+  display: grid;
+  gap: var(--sp-2);
+  font-size: var(--fs-small);
+  color: var(--muted);
+  border-top: 1px solid var(--line);
+}
+
+/* 문서 페이지(평가 기준): 카드를 한 줄로 쌓는다 */
+.doc {
+  max-width: 920px;
+  margin: 0 auto;
+  display: grid;
+  gap: var(--sp-4);
+}
+.doc-head {
+  background: var(--paper);
+  border-radius: var(--r-lg);
+  padding: var(--sp-6) var(--sp-5);
+  border-bottom: 6px solid var(--blue);
+  display: grid;
+  gap: var(--sp-3);
+  box-shadow: var(--shadow-card);
+}
+.doc-head h1 {
+  font-size: clamp(2rem, 1.5rem + 2.4vw, 3rem);
+  line-height: 1.12;
+}
+.doc-head .lede {
+  max-width: 46em;
+}
+.doc .inner > p {
+  max-width: 46em;
+  color: var(--ink-soft);
+}
+.doc .inner h3 {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: var(--fs-d4);
+}
+.terms {
+  display: grid;
+  gap: var(--sp-3);
+  font-size: var(--fs-small);
+}
+.terms div {
+  display: grid;
+  gap: 2px;
+}
+.terms dt {
+  font-weight: 700;
+  color: var(--ink);
+}
+.terms dd {
+  color: var(--ink-soft);
+}
+@media (min-width: 760px) {
+  .doc-head {
+    padding: var(--sp-8) var(--sp-8) var(--sp-6);
+  }
+  .terms div {
+    grid-template-columns: 9rem 1fr;
+    gap: var(--sp-3);
+  }
+}
