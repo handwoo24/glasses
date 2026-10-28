@@ -22,3 +22,9 @@ resources/**/text/
 src/paraglide
 .gstack/
 resources/goyang-city/_execution/*.html
+
+# Firebase 에뮬레이터
+firebase-debug.log
+firestore-debug.log
+ui-debug.log
+.emulator-data/
