@@ -3,12 +3,13 @@ import { AXIS_IDS, AXIS_INFO, EVIDENCE_INFO, STATUS_INFO } from '../axes'
 import type { AxisId } from '../axes'
 import type { Cited, OverviewCell, UnknownItem } from '../assessment'
 import { fromLabel } from '../labels'
-import { cited, itemParagraphs, plain, requireLead } from './inline'
+import { cited, itemParagraphs, lead, plain, requireLead } from './inline'
 import type { Lead } from './inline'
 import { DocError } from './errors'
 import { expectNodes, namedSections, splitSections } from './sections'
 import type { Section } from './sections'
-import type { AxisDoc, ReportDoc } from '../report-doc'
+import { FACT_KINDS } from '../report-doc'
+import type { AxisDoc, AxisFact, ReportDoc } from '../report-doc'
 import type { ListItem, List, Paragraph, RootContent, Table } from 'mdast'
 
 const OVERVIEW_LABELS = ['무엇', '얼마', '누가', '언제'] as const
@@ -92,9 +93,10 @@ export function parseVerdict(sec: Section) {
   )
   if (!next) throw new DocError(sec.where, '### 다음 판단 시점이 필요함')
   const [list] = expectNodes(next.nodes, ['list'], next.where)
-  const nextDates = leadItems(list, next.where).map(
-    ({ lead }) => [lead.label, plain(lead.rest, next.where)] as const,
-  )
+  const nextDates = leadItems(list, next.where).map(({ lead: l }) => ({
+    when: l.label,
+    what: plain(l.rest, next.where),
+  }))
   return { verdict: plain(p.children, sec.where), nextDates }
 }
 
@@ -139,14 +141,34 @@ function citedList(list: List, where: string): Array<Cited> {
   })
 }
 
+/** 사실 목록: 항목 첫머리의 **발언** **문서** **계산**은 근거 종류(선택) */
+function factList(list: List, where: string): Array<AxisFact> {
+  return list.children.map((it) => {
+    const ps = itemParagraphs(it, where)
+    if (ps.length !== 1) throw new DocError(where, '항목은 한 문단')
+    const l = lead(ps[0], where)
+    if (!l) return { cited: cited(ps[0].children, where) }
+    const kind = FACT_KINDS.find((k) => k === l.label)
+    if (!kind)
+      throw new DocError(
+        where,
+        `사실 앞 라벨은 ${FACT_KINDS.map((k) => `**${k}**`).join(' ')}만 (지금: **${l.label}**)`,
+      )
+    return { kind, cited: cited(l.rest, where) }
+  })
+}
+
 type AxisBody = Omit<AxisDoc, 'status' | 'evidence'>
+/** 목록 앞에 오는 라벨 문단. 옛 문서의 ‘시의 설명’도 받는다 */
+const SAID_LABELS = ['기관의 설명', '시의 설명']
+const SAID = '기관의 설명'
 
 /** 축 블록 하나를 읽는다. 같은 블록이 두 번 나오면 앞의 것이 사라지지 않게 실패 */
 function axisBlock(
   n: RootContent,
   saidNext: boolean,
   where: string,
-): [keyof AxisBody | '시의 설명', unknown] {
+): [keyof AxisBody | typeof SAID, unknown] {
   if (n.type === 'blockquote') {
     const [p] = expectNodes(n.children, ['paragraph'], where)
     return ['line', plain(p.children, where)]
@@ -154,7 +176,9 @@ function axisBlock(
   if (n.type === 'heading' && n.depth === 4)
     return ['title', plain(n.children, where)]
   if (n.type === 'list')
-    return [saidNext ? 'said' : 'facts', citedList(n, where)]
+    return saidNext
+      ? ['said', citedList(n, where)]
+      : ['facts', factList(n, where)]
   if (n.type === 'containerDirective' && n.name === 'figure') {
     if (Object.keys(n.attributes ?? {}).length)
       throw new DocError(where, '::::figure에는 속성을 쓰지 않는다')
@@ -163,14 +187,14 @@ function axisBlock(
   if (n.type !== 'paragraph')
     throw new DocError(where, `축 안에 쓸 수 없는 블록: ${n.type}`)
   const l = requireLead(n, where)
-  if (l.label === '시의 설명' && l.rest.length === 0) return ['시의 설명', true]
+  if (SAID_LABELS.includes(l.label) && l.rest.length === 0) return [SAID, true]
   if (l.label === '시민 단위') return ['per', plain(l.rest, where)]
   if (l.label === '참고') return ['note', l.rest]
   if (l.label === '확인 못 한 것') return ['missing', plain(l.rest, where)]
   throw new DocError(where, `알 수 없는 라벨 **${l.label}**`)
 }
 
-const BLOCK_NAME: Partial<Record<keyof AxisBody | '시의 설명', string>> = {
+const BLOCK_NAME: Partial<Record<keyof AxisBody | typeof SAID, string>> = {
   line: '> 한 줄 요약',
   title: '#### 제목',
   facts: '사실 목록 (그림 안 목록은 ::::figure 안에)',
@@ -178,25 +202,25 @@ const BLOCK_NAME: Partial<Record<keyof AxisBody | '시의 설명', string>> = {
   per: '**시민 단위**',
   note: '**참고**',
   missing: '**확인 못 한 것**',
-  '시의 설명': '**시의 설명**',
+  [SAID]: '**기관의 설명**',
 }
 
-/** 축 하나: > 한 줄, #### 제목, 사실 목록, ::::figure, **시민 단위**, **시의 설명**, **참고**, **확인 못 한 것** */
+/** 축 하나: > 한 줄, #### 제목, 사실 목록, ::::figure, **시민 단위**, **기관의 설명**, **참고**, **확인 못 한 것** */
 function parseAxis(nodes: ReadonlyArray<RootContent>, where: string): AxisBody {
   const seen = new Set<string>()
   const out: Record<string, unknown> = {}
   let saidNext = false
   for (const n of nodes) {
     if (saidNext && n.type !== 'list')
-      throw new DocError(where, '**시의 설명** 다음에는 목록')
+      throw new DocError(where, '**기관의 설명** 다음에는 목록')
     const [key, value] = axisBlock(n, saidNext, where)
     if (seen.has(key))
       throw new DocError(where, `${BLOCK_NAME[key] ?? key}가 두 번 나옴`)
     seen.add(key)
-    saidNext = key === '시의 설명'
+    saidNext = key === SAID
     if (!saidNext) out[key] = value
   }
-  if (saidNext) throw new DocError(where, '**시의 설명** 다음에는 목록')
+  if (saidNext) throw new DocError(where, '**기관의 설명** 다음에는 목록')
   if (!out.line || !out.title)
     throw new DocError(where, '> 한 줄 요약과 #### 제목이 필요함')
   return out as unknown as AxisBody
@@ -220,9 +244,9 @@ export function parseAxes(sec: Section): Record<AxisId, AxisDoc> {
 
 export function parseUnknowns(sec: Section): Array<UnknownItem> {
   const [list] = expectNodes(sec.nodes, ['list'], sec.where)
-  return leadItems(list, sec.where, ['req']).map(({ lead }) => {
-    const [text, ...cite] = cited(lead.rest, sec.where)
-    return { label: lead.label, text, requested: lead.variant === 'req', cite }
+  return leadItems(list, sec.where, ['req']).map(({ lead: l }) => {
+    const [text, ...cite] = cited(l.rest, sec.where)
+    return { label: l.label, text, requested: l.variant === 'req', cite }
   })
 }
 

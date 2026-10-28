@@ -31,7 +31,13 @@ import {
   OversightFold,
   TimelineFold,
 } from './details'
-import { CitedText, FactList, OverallEvidenceMark, StatusBadge } from './parts'
+import {
+  AxisFactList,
+  CitedText,
+  DDay,
+  OverallEvidenceMark,
+  StatusBadge,
+} from './parts'
 import { RequestBox } from './request-box'
 import { useOpenDetailsOnHash } from './use-open-details-on-hash'
 
@@ -248,15 +254,17 @@ function NextCard({ doc: K }: { doc: ReportDoc }) {
       </h2>
       {first && (
         <>
-          <p className="big">{first[0]}</p>
-          <p className="what">{first[1]}</p>
+          <p className="big">
+            {first.when} <DDay date={first.date} />
+          </p>
+          <p className="what">{first.what}</p>
         </>
       )}
       {rest.length > 0 && (
         <ol>
-          {rest.map(([when, what], i) => (
-            <li key={`${i}-${when}`}>
-              <b>{when}</b> {what}
+          {rest.map((d, i) => (
+            <li key={`${i}-${d.when}`}>
+              <b>{d.when}</b> {d.what}
             </li>
           ))}
         </ol>
@@ -317,7 +325,7 @@ function AxisArticle({ id, axis: x }: { id: AxisId; axis: AxisDoc }) {
         <span className="ax-q">{info.question}</span>
       </div>
       <h3 id={`t-axis-${id}`}>{x.title}</h3>
-      {x.facts && <FactList facts={x.facts} />}
+      {x.facts && <AxisFactList facts={x.facts} />}
       {x.figure && (
         <div className="rp-fig">{renderFigure(x.figure, info.label)}</div>
       )}
@@ -444,9 +452,10 @@ function citedAxes(axes: Record<AxisId, AxisDoc>): Map<string, Array<AxisId>> {
   const map = new Map<string, Array<AxisId>>()
   for (const a of AXIS_IDS) {
     const ids = new Set(
-      [...(axes[a].facts ?? []), ...(axes[a].said ?? [])].flatMap(
-        ([, ...cite]) => cite,
-      ),
+      [
+        ...(axes[a].facts ?? []).map((f) => f.cited),
+        ...(axes[a].said ?? []),
+      ].flatMap(([, ...cite]) => cite),
     )
     for (const id of ids) map.set(id, [...(map.get(id) ?? []), a])
   }
@@ -542,7 +551,7 @@ function Rail({
         </p>
         {first && (
           <p className="next">
-            다음 판단 <b>{first[0]}</b>
+            다음 판단 <b>{first.when}</b> <DDay date={first.date} />
           </p>
         )}
       </div>

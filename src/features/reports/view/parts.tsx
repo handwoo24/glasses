@@ -1,10 +1,13 @@
 // 보고서 부품. 클래스 이름과 쓰임은 glasses 디자인 시스템(src/styles/report.css)을 따른다.
+import { useEffect, useState } from 'react'
 import type { ReactNode } from 'react'
 import { EVIDENCE_INFO, OVERALL_EVIDENCE_INFO, STATUS_INFO } from '../axes'
 import type { AxisStatus, EvidenceLevel, OverallEvidence } from '../axes'
 import { ANSWER_INFO, STATUS_TONE } from '../assessment'
 import type { Answer, Cited } from '../assessment'
 import { Cite } from '../components/cite'
+import { daysUntil } from '../doc/dates'
+import type { AxisFact } from '../report-doc'
 
 interface StatusBadgeProps {
   status: AxisStatus
@@ -74,6 +77,34 @@ export function FactList({ facts }: { facts: ReadonlyArray<Cited> }) {
       ))}
     </ul>
   )
+}
+
+/** 근거 종류(발언·문서·계산)가 붙은 사실 목록 */
+export function AxisFactList({ facts }: { facts: ReadonlyArray<AxisFact> }) {
+  return (
+    <ul className="f">
+      {facts.map((f, i) => (
+        <li key={`${i}-${f.cited[0]}`}>
+          {f.kind && <span className="fact-kind">{f.kind}</span>}
+          <CitedText value={f.cited} />
+        </li>
+      ))}
+    </ul>
+  )
+}
+
+/**
+ * D-day. 오늘은 브라우저 시계로 센다. 서버에서 그린 HTML과 어긋나지 않게
+ * 처음 그릴 때는 비워 두고, 화면에 붙은 뒤에 채운다.
+ */
+export function DDay({ date }: { date?: string }) {
+  const [today, setToday] = useState<string>()
+  useEffect(() => {
+    setToday(new Date().toLocaleDateString('sv-SE'))
+  }, [])
+  const days = date && today ? daysUntil(date, today) : undefined
+  if (days === undefined || days < 0) return null
+  return <span className="dday">{days === 0 ? '오늘' : `D-${days}`}</span>
 }
 
 export interface BarRow {

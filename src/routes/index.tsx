@@ -3,18 +3,37 @@ import { listReportSummaries } from '#/features/reports/server/report-docs.funct
 import { AXES_VERSION } from '#/features/reports/axes'
 import { summarize } from '#/features/reports/assessment'
 import { AxisRing } from '#/features/reports/view/axis-ring'
-import { StatusBadge } from '#/features/reports/view/parts'
+import { DDay, StatusBadge } from '#/features/reports/view/parts'
 
 export const Route = createFileRoute('/')({
-  loader: () => listReportSummaries(),
+  // 오늘은 로더에서 한 번 정한다. 서버가 그린 화면과 브라우저가 같은 목록을 쓴다
+  loader: async () => ({
+    reports: await listReportSummaries(),
+    today: new Date().toLocaleDateString('sv-SE'),
+  }),
   component: Home,
 })
 
+/** 홈에 보이는 판단 시점 묶음 수 */
+const UPCOMING_LIMIT = 6
+
+type Summary = Awaited<ReturnType<typeof listReportSummaries>>[number]
+
+/** 지나지 않은 판단 시점을 날짜순으로, 같은 라벨끼리 묶는다. 날짜를 모르는 것은 뒤로 */
+function upcomingDays(reports: ReadonlyArray<Summary>, today: string) {
+  const items = reports
+    .flatMap((r) => r.nextDates.map((d) => ({ ...d, r })))
+    .filter((d) => !d.date || d.date >= today.slice(0, d.date.length))
+    .sort((a, b) => (a.date ?? '9999').localeCompare(b.date ?? '9999'))
+  const groups = new Map<string, typeof items>()
+  for (const it of items)
+    groups.set(it.when, [...(groups.get(it.when) ?? []), it])
+  return [...groups].slice(0, UPCOMING_LIMIT)
+}
+
 function Home() {
-  const reports = Route.useLoaderData()
-  const upcoming = reports.flatMap((r) =>
-    r.nextDates.slice(0, 1).map(([when, what]) => ({ when, what, r })),
-  )
+  const { reports, today } = Route.useLoaderData()
+  const upcoming = upcomingDays(reports, today)
   return (
     <div className="page">
       <div className="home-page">
@@ -39,21 +58,28 @@ function Home() {
               <span>판정을 바꿀 수 있는 자료가 나오는 날</span>
             </div>
             <ol className="days">
-              {upcoming.map(({ when, what, r }) => (
-                <li key={r.slug}>
-                  <span className="when">{when}</span>
-                  <Link
-                    to="/reports/$slug"
-                    params={{ slug: r.slug }}
-                    className="day-item"
-                  >
-                    <AxisRing axes={r.axes} size={40} />
-                    <span className="txt">
-                      <b>{what}</b>
-                      <span>{r.title}</span>
-                    </span>
-                    <StatusBadge status={summarize(r).overall} overall />
-                  </Link>
+              {upcoming.map(([when, items]) => (
+                <li key={when}>
+                  <span className="when">
+                    {when} <DDay date={items[0].date} />
+                  </span>
+                  <span className="day-items">
+                    {items.map(({ what, r }, i) => (
+                      <Link
+                        key={`${r.slug}-${i}`}
+                        to="/reports/$slug"
+                        params={{ slug: r.slug }}
+                        className="day-item"
+                      >
+                        <AxisRing axes={r.axes} size={40} />
+                        <span className="txt">
+                          <b>{what}</b>
+                          <span>{r.title}</span>
+                        </span>
+                        <StatusBadge status={summarize(r).overall} overall />
+                      </Link>
+                    ))}
+                  </span>
                 </li>
               ))}
             </ol>

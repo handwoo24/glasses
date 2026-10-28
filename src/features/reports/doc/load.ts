@@ -27,6 +27,7 @@ import {
 } from './parse-folds'
 import { prepare, prepareAll } from './prepare'
 import { labelledItem, renderFigure, renderInline, renderPanel } from './rich'
+import { judgeDateStart } from './dates'
 import { check, expectNodes, splitSections } from './sections'
 import type { Section } from './sections'
 
@@ -173,6 +174,7 @@ function readReportDoc(src: string): ReportDoc {
     const sec = s.get(k)
     return sec && fn(sec)
   }
+  const { verdict, nextDates } = parseVerdict(get('verdict'))
   const { request, moreActions } = parseActions(get('actions'))
   const actions = {
     request,
@@ -190,7 +192,11 @@ function readReportDoc(src: string): ReportDoc {
     axisIndicators: f.axisIndicators,
     overview: parseOverview(get('overview')),
     side: panel(get('side')),
-    ...parseVerdict(get('verdict')),
+    verdict,
+    nextDates: nextDates.map((d) => {
+      const date = judgeDateStart(d.when, f.asOf)
+      return date ? { ...d, date } : d
+    }),
     status: panel(get('status')),
     axes: prepareAxes(parseAxes(get('axes'))),
     vendors: opt('vendors', panel),

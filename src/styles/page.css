@@ -464,6 +464,33 @@
   color: var(--ink-soft);
 }
 
+/* 사실 앞 근거 종류: 발언 · 문서 · 계산 */
+.fact-kind {
+  display: inline-block;
+  margin-right: 6px;
+  padding: 0 4px;
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.5;
+  color: var(--muted);
+  vertical-align: 2px;
+  white-space: nowrap;
+}
+/* D-day: 날짜 옆 작은 알약 */
+.dday {
+  display: inline-block;
+  padding: 1px 9px;
+  border-radius: var(--r-pill);
+  background: var(--paper);
+  color: var(--blue);
+  font-size: var(--fs-small);
+  font-weight: 700;
+  letter-spacing: 0;
+  vertical-align: middle;
+}
+
 /* 축별 근거 한 축 */
 .rp-axis {
   display: grid;
@@ -603,6 +630,23 @@
 }
 .srcs li:target {
   background: var(--blue-soft);
+  box-shadow:
+    -8px 0 0 var(--blue-soft),
+    8px 0 0 var(--blue-soft);
+  animation: src-flash 1.6s ease-out;
+}
+/* 출처 칩을 누르면 그 출처로 가서 잠깐 진하게, 그다음 옅은 바탕으로 남는다 */
+@keyframes src-flash {
+  0%,
+  30% {
+    background: var(--blue);
+    color: var(--paper);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .srcs li:target {
+    animation: none;
+  }
 }
 .srcs .cite {
   justify-self: start;
@@ -815,6 +859,13 @@
   letter-spacing: -0.03em;
   line-height: 1.1;
   color: var(--blue);
+}
+.day-items {
+  display: grid;
+  gap: var(--sp-2);
+}
+.days .dday {
+  background: var(--blue-soft);
 }
 .day-item {
   display: grid;

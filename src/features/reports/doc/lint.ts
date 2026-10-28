@@ -12,7 +12,7 @@ export function sentences(a: ReportDoc): Array<string> {
       return [
         x.line,
         x.title,
-        ...(x.facts ?? []).map((f) => f[0]),
+        ...(x.facts ?? []).map((f) => f.cited[0]),
         ...(x.said ?? []).map((s) => s[0]),
         x.per ?? '',
         x.missing ?? '',
@@ -40,7 +40,7 @@ export function lintReportDoc(a: ReportDoc): Array<string> {
       problems.push(`${id} 한 줄 요약은 한다체(…다.)로 끝난다`)
     for (const [text] of a.axes[id].said ?? [])
       if (!/^[^:(]+\(\d{4}\. \d{1,2}\.\): /.test(text))
-        problems.push(`${id} 시의 설명은 “직함(2024. 12.): …” 형식: ${text}`)
+        problems.push(`${id} 기관의 설명은 “직함(2024. 12.): …” 형식: ${text}`)
   }
   for (const s of sentences(a))
     for (const [re, why] of BANNED)

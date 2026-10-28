@@ -31,6 +31,25 @@ export interface Panel {
   body: Blocks
 }
 
+/** 사실의 근거 종류: 회의 발언, 공식 문서, glasses가 계산한 값 */
+export const FACT_KINDS = ['발언', '문서', '계산'] as const
+export type FactKind = (typeof FACT_KINDS)[number]
+
+/** 축의 사실 한 줄. 근거 종류는 문서에 적었을 때만 있다 */
+export interface AxisFact {
+  kind?: FactKind
+  cited: Cited
+}
+
+/** 다음 판단 시점 한 줄 */
+export interface NextDate {
+  /** 리포트에 쓴 라벨 그대로(11. 10. · 12월 · 2027년 상반기) */
+  when: string
+  what: string
+  /** 정렬·D-day용 시작 날짜(YYYY-MM-DD 또는 YYYY-MM). 라벨을 읽을 수 없으면 없음 */
+  date?: string
+}
+
 export interface AxisDoc {
   status: AxisStatus
   evidence: EvidenceLevel
@@ -38,12 +57,12 @@ export interface AxisDoc {
   line: string
   /** 축 카드의 결론 제목 (합니다체) */
   title: string
-  facts?: ReadonlyArray<Cited>
+  facts?: ReadonlyArray<AxisFact>
   /** 그래프나 표 */
   figure?: Blocks
   /** 시민 단위 (축마다 최대 하나) */
   per?: string
-  /** 시의 설명. “직함(시기): 요약.” 발언자마다 하나 */
+  /** 기관의 설명. “직함(시기): 요약.” 발언자마다 하나 */
   said?: ReadonlyArray<Cited>
   note?: Inline
   missing?: string
@@ -73,7 +92,7 @@ export interface ReportDoc {
   side: Panel
   /** 종합 판정 문장: ① 잘되는 것 ② 가장 큰 문제와 금액 ③ 다음 확인 시점, 4문장 안쪽 */
   verdict: string
-  nextDates: ReadonlyArray<readonly [when: string, what: string]>
+  nextDates: ReadonlyArray<NextDate>
   status: Panel
   axes: Record<AxisId, AxisDoc>
   vendors?: Panel

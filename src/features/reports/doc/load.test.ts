@@ -150,7 +150,7 @@ describe('양식이 틀린 문서는 읽지 않는다', () => {
     [
       '시의 설명 뒤 목록 없음',
       edit('해마다 약 2,300원\n', '해마다 약 2,300원\n\n**시의 설명**\n'),
-      '**시의 설명** 다음에는 목록',
+      '**기관의 설명** 다음에는 목록',
     ],
     [
       '제목에 꾸밈',
@@ -237,5 +237,54 @@ describe('브라우저로 보내는 모양', () => {
   test('월 단위 날짜도 큰 날짜로 그린다', () => {
     const html = renderToStaticMarkup(createElement(ReportPage, { doc }))
     expect(html).toContain('<p class="big-date">2026. 12.</p>')
+  })
+})
+
+describe('양식 확장 (v2): 근거 종류, 기관의 설명, 판단 시점 날짜, 출처 종류', () => {
+  test('사실 앞의 **발언** **문서** **계산**을 근거 종류로 읽는다', () => {
+    const doc = loadReportDoc(
+      edit(
+        '- 2024년 담당 과장은 조성 뒤',
+        '- **발언** 2024년 담당 과장은 조성 뒤',
+      ),
+    )
+    const [first, second] = doc.axes.sustainability.facts ?? []
+    expect(first.kind).toBe('발언')
+    expect(first.cited[0]).toMatch(/^2024년 담당 과장은/)
+    expect(second.kind).toBeUndefined()
+  })
+
+  test('사실 첫머리 라벨은 근거 종류만 쓸 수 있다', () => {
+    expect(() =>
+      loadReportDoc(
+        edit(
+          '- 2024년 담당 과장은 조성 뒤',
+          '- **추정** 2024년 담당 과장은 조성 뒤',
+        ),
+      ),
+    ).toThrow('사실 앞 라벨은 **발언** **문서** **계산**만')
+  })
+
+  test('**기관의 설명**을 읽고, 옛 라벨 **시의 설명**도 받는다', () => {
+    const now = loadReportDoc(md.replaceAll('**시의 설명**', '**기관의 설명**'))
+    const old = loadReportDoc(md)
+    expect(now.axes.goal.said).toEqual(old.axes.goal.said)
+    expect(now.axes.goal.said?.length).toBe(1)
+  })
+
+  test('다음 판단 시점에 기준일로 계산한 날짜가 붙는다', () => {
+    const doc = loadReportDoc(md)
+    expect(doc.nextDates[0]).toEqual({
+      when: '11. 10.',
+      what: '첫 실적 보고',
+      date: '2026-11-10',
+    })
+    expect(doc.nextDates.at(-1)?.date).toBe('2026-12')
+  })
+
+  test('출처 종류에 집행정보·감사·법령·목록을 쓸 수 있다', () => {
+    const kinds = new Set<string>(loadReportDoc(md).sources.map((x) => x.kind))
+    for (const kind of ['집행정보', '감사', '법령', '목록'])
+      expect(kinds.has(kind)).toBe(true)
   })
 })
