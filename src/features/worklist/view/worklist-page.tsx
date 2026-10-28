@@ -2,7 +2,7 @@
 import { Link, useNavigate } from '@tanstack/react-router'
 import { useState } from 'react'
 import { summarize } from '#/features/reports/assessment'
-import { AxisRing } from '#/features/reports/view/axis-ring'
+import { AxisSummary } from '#/features/reports/view/axis-summary'
 import { StatusBadge } from '#/features/reports/view/parts'
 import {
   NO_DEPT,
@@ -301,7 +301,7 @@ function ItemList({ rows }: { rows: ReadonlyArray<WorkItem> }) {
       <p className="wl-foot">
         <span>
           진행 막대: 수집 → 분석 → 작성 → 검증 → 게시. 점선은 아직 시작하지 않은
-          사업, 게시한 사업은 7개 축 링으로 바뀝니다. 집행률은 지방재정365
+          사업, 게시한 사업은 7개 축 요약 막대로 바뀝니다. 집행률은 지방재정365
           조회일 기준이라 연말 전에는 낮을 수 있고, 낮다고 문제라는 뜻은
           아닙니다.
         </span>
@@ -321,7 +321,7 @@ function Row({ item: i }: { item: WorkItem }) {
   const body = (
     <>
       {i.summary ? (
-        <AxisRing axes={i.summary.axes} size={56} />
+        <AxisSummary axes={i.summary.axes} only="bar" />
       ) : (
         <StageBar stage={i.stage} />
       )}
@@ -336,6 +336,11 @@ function Row({ item: i }: { item: WorkItem }) {
             .join(' · ')}
         </p>
         <h3>{i.summary?.title ?? i.name}</h3>
+        {i.summary && (
+          <p className="wl-axes">
+            <AxisSummary axes={i.summary.axes} only="text" />
+          </p>
+        )}
         <p className="why">{i.summary?.verdict ?? i.priorityWhy}</p>
         <p className="path">programs/{i.id}</p>
       </div>

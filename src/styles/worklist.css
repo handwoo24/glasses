@@ -246,13 +246,14 @@
   margin-left: auto;
 }
 .wl-f select {
+  appearance: none;
   font: 500 var(--fs-small) var(--font-body);
   color: var(--ink);
-  background: var(--paper);
-  border: 1px solid var(--line);
+  background: var(--paper) var(--chevron) no-repeat right 14px center / 16px;
+  border: 1px solid var(--bar);
   border-radius: var(--r-md);
-  padding: 0 12px;
-  min-height: 42px;
+  padding: 0 44px 0 14px;
+  min-height: 44px;
   max-width: 100%;
 }
 .wl-f select:focus-visible {
@@ -405,6 +406,9 @@ a.wl-row:focus-visible {
   .wl-row > svg {
     width: 44px;
     height: 44px;
+    grid-row: span 2;
+  }
+  .wl-row > .axis-sum {
     grid-row: span 2;
   }
   .wl-money,
