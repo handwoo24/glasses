@@ -1,5 +1,6 @@
 {
   "projects": {
-    "default": "demo-glasses"
+    "default": "demo-glasses",
+    "prod": "glasses-8bd7a"
   }
 }

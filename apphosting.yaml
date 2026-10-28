@@ -1,0 +1,7 @@
+# Firebase App Hosting 실행 설정. 빌드는 package.json의 build, 실행은 start(Nitro node 서버, PORT 사용)
+runConfig:
+  minInstances: 0
+  maxInstances: 2
+  concurrency: 80
+  cpu: 1
+  memoryMiB: 512

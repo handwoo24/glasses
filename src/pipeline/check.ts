@@ -1,10 +1,9 @@
 // 사실 원장의 결정론적 검사: 자료 파일 해시가 기록과 같은지, 인용이 원문에 글자 그대로 있는지.
 // 판단이 필요 없는 검사는 검증 에이전트에 맡기지 않고 여기서 한다.
 import { createHash } from 'node:crypto'
-import { readFileSync } from 'node:fs'
 import { FactSchema, MaterialSchema, NAME_MASK } from './schemas'
 import type { Fact } from './schemas'
-import { get, list } from './store'
+import { get, list, readMaterialFile } from './store'
 
 const squash = (s: string) => s.replace(/\s+/g, ' ')
 
@@ -35,7 +34,7 @@ async function checkSourced(
 ): Promise<Array<FactProblem>> {
   const material = MaterialSchema.parse(await get(`materials/${fact.material}`))
   if (!files.has(material.file)) {
-    const bytes = readFileSync(material.file)
+    const bytes = await readMaterialFile(material.file)
     const sha = createHash('sha256').update(bytes).digest('hex')
     if (sha !== material.sha256)
       return [{ fact: id, problem: `자료 파일이 바뀜: ${material.file}` }]

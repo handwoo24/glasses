@@ -28,3 +28,6 @@ firebase-debug.log
 firestore-debug.log
 ui-debug.log
 .emulator-data/
+
+# 수집 원자료: 원본은 Cloud Storage(gs://glasses-8bd7a.firebasestorage.app/resources)에 둔다
+resources/

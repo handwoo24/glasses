@@ -1,12 +1,23 @@
 // 파이프라인 산출물 읽기·쓰기. 쓰기 전에 양식과 참조(사업·자료·리포트가 있는지)를 검사한다.
+import { existsSync, readFileSync } from 'node:fs'
 import { getApps, initializeApp } from 'firebase-admin/app'
 import { getFirestore } from 'firebase-admin/firestore'
+import { getStorage } from 'firebase-admin/storage'
 import type { Firestore } from 'firebase-admin/firestore'
 import { loadReportDoc } from '#/features/reports/doc/load'
 import { isCollection, resolve } from './paths'
 import type { Kind } from './paths'
 
 const DEFAULT_PROJECT = 'demo-glasses'
+
+function app() {
+  return (
+    getApps()[0] ??
+    initializeApp({
+      projectId: process.env.GLASSES_FIRESTORE_PROJECT ?? DEFAULT_PROJECT,
+    })
+  )
+}
 let cached: Firestore | undefined
 
 /**
@@ -21,9 +32,7 @@ export function db(): Firestore {
       'FIRESTORE_EMULATOR_HOST(에뮬레이터) 또는 GLASSES_FIRESTORE_PROJECT(운영)를 정해야 한다',
     )
   if (cached) return cached
-  const app =
-    getApps()[0] ?? initializeApp({ projectId: project ?? DEFAULT_PROJECT })
-  const store = getFirestore(app)
+  const store = getFirestore(app())
   // 선택 필드(undefined)는 쓰지 않는다. 문서를 통째로 쓸 때 빠진 필드는 지워진다
   store.settings({ ignoreUndefinedProperties: true })
   cached = store
@@ -105,4 +114,19 @@ export async function list(
     throw new Error(`정해지지 않은 컬렉션: ${collection}`)
   const snap = await db().collection(collection).get()
   return snap.docs.map((d) => ({ id: d.id, data: d.data() }))
+}
+
+/**
+ * 자료 파일 내용. 로컬(resources/ …)에 있으면 그것을, 없으면 같은 경로의 Storage 객체를 읽는다.
+ * 클라우드 실행에는 로컬 사본이 없으므로 GLASSES_STORAGE_BUCKET을 정해 둔다.
+ */
+export async function readMaterialFile(file: string): Promise<Buffer> {
+  if (existsSync(file)) return readFileSync(file)
+  const bucket = process.env.GLASSES_STORAGE_BUCKET
+  if (!bucket)
+    throw new Error(
+      `로컬에 없는 자료 파일: ${file} (GLASSES_STORAGE_BUCKET을 정하면 Storage에서 읽는다)`,
+    )
+  const [bytes] = await getStorage(app()).bucket(bucket).file(file).download()
+  return bytes
 }

@@ -1,0 +1,10 @@
+rules_version = '2';
+
+// 수집 원자료는 서버(관리자 SDK)와 파이프라인 도구만 읽고 쓴다. 브라우저 직접 접근은 막는다.
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

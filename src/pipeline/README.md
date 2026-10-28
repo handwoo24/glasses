@@ -54,4 +54,12 @@ npm run pipeline -- done <작업 id> programs/goyang.autonomous-bus/reviews/2026
 npm run pipeline -- fail <작업 id> <사유>  # 시도가 남았으면 다시 큐로
 ```
 
-운영 Firestore에 쓰려면 `FIRESTORE_EMULATOR_HOST` 대신 `GLASSES_FIRESTORE_PROJECT`를 정한다. 둘 다 없으면 도구는 연결하지 않는다.
+운영(`glasses-8bd7a`)에 쓰려면 `FIRESTORE_EMULATOR_HOST` 대신 아래를 정한다. 둘 다 없으면 도구는 연결하지 않는다.
+
+```sh
+export GLASSES_FIRESTORE_PROJECT=glasses-8bd7a
+export GOOGLE_CLOUD_QUOTA_PROJECT=glasses-8bd7a              # 로컬 사용자 인증(ADC)의 할당량 프로젝트
+export GLASSES_STORAGE_BUCKET=glasses-8bd7a.firebasestorage.app  # 로컬에 resources/가 없을 때 자료 파일을 읽는 곳
+```
+
+수집 원자료는 Storage의 `resources/` 아래에 로컬과 같은 경로로 둔다. `materials.file`이 곧 Storage 객체 이름이다. 로컬 사본을 올릴 때는 `gcloud storage rsync resources gs://glasses-8bd7a.firebasestorage.app/resources --recursive`.
