@@ -146,6 +146,12 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST)(
         '머리말의 slug',
       )
       await put(`published/test-${RUN}`, published)
+      // 게시할 때 홈·목록용 요약을 리포트에서 계산해 함께 쓴다
+      const saved = (await get(`published/test-${RUN}`)) as {
+        summary?: { subject?: string; title: string }
+      }
+      expect(saved.summary?.subject).toBe(PROGRAM)
+      expect(saved.summary?.title).toBe('자율주행버스 ‘달릴고양’')
       await expect(
         put(`published/test-${RUN}`, {
           ...published,

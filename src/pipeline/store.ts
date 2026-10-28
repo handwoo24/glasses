@@ -7,6 +7,8 @@ import type { Firestore } from 'firebase-admin/firestore'
 import { getStorage } from 'firebase-admin/storage'
 import { loadReportDoc } from '#/features/reports/doc/load'
 import { lintReportDoc } from '#/features/reports/doc/lint'
+import { toSummary } from '#/features/reports/summary'
+import type { ReportSummary } from '#/features/reports/summary'
 import { isCollection, resolve } from './paths'
 import type { Kind } from './paths'
 import { ReportRecordSchema } from './schemas'
@@ -73,11 +75,12 @@ function checkReport(markdown: string): void {
     throw new Error(`리포트 문장 규칙 위반:\n  ${problems.join('\n  ')}`)
 }
 
+/** 게시 문서가 가리키는 리포트를 검사하고, 홈·목록용 요약을 돌려준다 */
 async function checkPublished(
   store: Firestore,
   slug: string,
   data: Record<string, unknown>,
-) {
+): Promise<ReportSummary> {
   const report = String(data.report)
   const { kind, parent } = resolve(report)
   if (kind !== 'report' || parent !== data.subject)
@@ -87,17 +90,17 @@ async function checkPublished(
   const record = ReportRecordSchema.parse(snap.data())
   if (record.status !== 'published')
     throw new Error(`status가 published인 리포트만 게시한다: ${report}`)
-  const docSlug = loadReportDoc(record.markdown).slug
-  if (docSlug !== slug)
+  const doc = loadReportDoc(record.markdown)
+  if (doc.slug !== slug)
     throw new Error(
-      `게시 주소(${slug})와 리포트 머리말의 slug(${docSlug})가 다르다`,
+      `게시 주소(${slug})와 리포트 머리말의 slug(${doc.slug})가 다르다`,
     )
+  return toSummary({ ...doc, subject: String(data.subject) })
 }
 
 /** 다른 문서를 가리키는 값이 실제로 있는지 */
 async function checkRefs(
   store: Firestore,
-  path: string,
   kind: Kind,
   parent: string | undefined,
   data: Record<string, unknown>,
@@ -130,8 +133,6 @@ async function checkRefs(
   if (kind === 'task' && data.subject)
     await mustExist(store, String(data.subject), '작업 대상')
   if (kind === 'report') checkReport(String(data.markdown))
-  if (kind === 'published')
-    await checkPublished(store, path.split('/')[1], data)
 }
 
 /** 양식·참조를 검사하고 문서를 통째로 쓴다 */
@@ -139,8 +140,16 @@ export async function put(path: string, value: unknown): Promise<void> {
   const data = validate(path, value) as Record<string, unknown>
   const { kind, parent } = resolve(path)
   const store = db()
-  await checkRefs(store, path, kind, parent, data)
-  await store.doc(path).set(data)
+  await checkRefs(store, kind, parent, data)
+  // 게시 문서에는 홈·목록용 요약을 리포트에서 계산해 함께 쓴다
+  const out =
+    kind === 'published'
+      ? {
+          ...data,
+          summary: await checkPublished(store, path.split('/')[1], data),
+        }
+      : data
+  await store.doc(path).set(out)
 }
 
 export async function get(path: string): Promise<unknown> {

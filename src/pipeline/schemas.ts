@@ -4,6 +4,7 @@
  * 이 양식에 맞는 문서만 쓴다. 단계별 쓰임은 src/pipeline/README.md.
  */
 import { z } from 'zod'
+import { ReportSummarySchema } from '#/features/reports/summary'
 
 const isoDate = z.iso.date()
 const isoDateTime = z.iso.datetime({ offset: true })
@@ -183,6 +184,8 @@ export const PublishedSchema = z.strictObject({
   /** 홈 목록 순서 (작을수록 앞) */
   order: z.number().int().nonnegative(),
   publishedAt: isoDateTime,
+  /** 홈·목록용 요약. 게시할 때 파이프라인 도구가 리포트에서 계산해 채운다 */
+  summary: ReportSummarySchema.optional(),
 })
 
 /** 사람 이름을 가리는 표기. 원문 검사(check-facts)에서는 아무 이름(한글 2~4자)과 맞춰 본다 */

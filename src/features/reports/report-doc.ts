@@ -116,29 +116,3 @@ export interface ReportDoc {
   disclosure: ReadonlyArray<DisclosureItem>
   timeline: ReadonlyArray<TimelineItem>
 }
-
-/** 홈 카드에 필요한 것만 */
-export type ReportSummary = Pick<
-  ReportDoc,
-  'slug' | 'project' | 'title' | 'verdict' | 'asOf' | 'nextDates'
-> & {
-  axes: Record<AxisId, Pick<AxisDoc, 'status' | 'evidence'>>
-}
-
-export function toSummary(doc: ReportDoc): ReportSummary {
-  const axes = Object.fromEntries(
-    Object.entries(doc.axes).map(([id, a]) => [
-      id,
-      { status: a.status, evidence: a.evidence },
-    ]),
-  ) as ReportSummary['axes']
-  return {
-    slug: doc.slug,
-    project: doc.project,
-    title: doc.title,
-    verdict: doc.verdict,
-    asOf: doc.asOf,
-    nextDates: doc.nextDates,
-    axes,
-  }
-}

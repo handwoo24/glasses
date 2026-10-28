@@ -1,8 +1,9 @@
-import { Link, createFileRoute } from '@tanstack/react-router'
+import { createFileRoute } from '@tanstack/react-router'
 import { listReportSummaries } from '#/features/reports/server/report-docs.functions'
 import { AXES_VERSION } from '#/features/reports/axes'
 import { summarize } from '#/features/reports/assessment'
 import { AxisRing } from '#/features/reports/view/axis-ring'
+import { ReportLink } from '#/features/reports/view/report-link'
 import { DDay, StatusBadge } from '#/features/reports/view/parts'
 
 export const Route = createFileRoute('/')({
@@ -65,10 +66,10 @@ function Home() {
                   </span>
                   <span className="day-items">
                     {items.map(({ what, r }, i) => (
-                      <Link
+                      <ReportLink
                         key={`${r.slug}-${i}`}
-                        to="/reports/$slug"
-                        params={{ slug: r.slug }}
+                        subject={r.subject}
+                        slug={r.slug}
                         className="day-item"
                       >
                         <AxisRing axes={r.axes} size={40} />
@@ -77,7 +78,7 @@ function Home() {
                           <span>{r.title}</span>
                         </span>
                         <StatusBadge status={summarize(r).overall} overall />
-                      </Link>
+                      </ReportLink>
                     ))}
                   </span>
                 </li>
@@ -95,10 +96,10 @@ function Home() {
             {reports.map((r) => {
               const { overall } = summarize(r)
               return (
-                <Link
+                <ReportLink
                   key={r.slug}
-                  to="/reports/$slug"
-                  params={{ slug: r.slug }}
+                  subject={r.subject}
+                  slug={r.slug}
                   className="report-card"
                 >
                   <span className="top">
@@ -109,7 +110,7 @@ function Home() {
                   <h3>{r.title}</h3>
                   <span className="s">{r.verdict}</span>
                   <span className="meta">{r.asOf} 기준</span>
-                </Link>
+                </ReportLink>
               )
             })}
           </div>

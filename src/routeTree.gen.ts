@@ -11,7 +11,9 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as MethodRouteImport } from './routes/method'
+import { Route as ProgramsProgramIdRouteImport } from './routes/programs/$programId'
 import { Route as ReportsSlugRouteImport } from './routes/reports/$slug'
+import { Route as OrgsOrgIdBudgetsBudgetIdRouteImport } from './routes/orgs/$orgId/budgets/$budgetId'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -23,40 +25,75 @@ const MethodRoute = MethodRouteImport.update({
   path: '/method',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ProgramsProgramIdRoute = ProgramsProgramIdRouteImport.update({
+  id: '/programs/$programId',
+  path: '/programs/$programId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ReportsSlugRoute = ReportsSlugRouteImport.update({
   id: '/reports/$slug',
   path: '/reports/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
+const OrgsOrgIdBudgetsBudgetIdRoute =
+  OrgsOrgIdBudgetsBudgetIdRouteImport.update({
+    id: '/orgs/$orgId/budgets/$budgetId',
+    path: '/orgs/$orgId/budgets/$budgetId',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/method': typeof MethodRoute
+  '/programs/$programId': typeof ProgramsProgramIdRoute
   '/reports/$slug': typeof ReportsSlugRoute
+  '/orgs/$orgId/budgets/$budgetId': typeof OrgsOrgIdBudgetsBudgetIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/method': typeof MethodRoute
+  '/programs/$programId': typeof ProgramsProgramIdRoute
   '/reports/$slug': typeof ReportsSlugRoute
+  '/orgs/$orgId/budgets/$budgetId': typeof OrgsOrgIdBudgetsBudgetIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/method': typeof MethodRoute
+  '/programs/$programId': typeof ProgramsProgramIdRoute
   '/reports/$slug': typeof ReportsSlugRoute
+  '/orgs/$orgId/budgets/$budgetId': typeof OrgsOrgIdBudgetsBudgetIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/method' | '/reports/$slug'
+  fullPaths:
+    | '/'
+    | '/method'
+    | '/programs/$programId'
+    | '/reports/$slug'
+    | '/orgs/$orgId/budgets/$budgetId'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/method' | '/reports/$slug'
-  id: '__root__' | '/' | '/method' | '/reports/$slug'
+  to:
+    | '/'
+    | '/method'
+    | '/programs/$programId'
+    | '/reports/$slug'
+    | '/orgs/$orgId/budgets/$budgetId'
+  id:
+    | '__root__'
+    | '/'
+    | '/method'
+    | '/programs/$programId'
+    | '/reports/$slug'
+    | '/orgs/$orgId/budgets/$budgetId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   MethodRoute: typeof MethodRoute
+  ProgramsProgramIdRoute: typeof ProgramsProgramIdRoute
   ReportsSlugRoute: typeof ReportsSlugRoute
+  OrgsOrgIdBudgetsBudgetIdRoute: typeof OrgsOrgIdBudgetsBudgetIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -75,11 +112,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MethodRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/programs/$programId': {
+      id: '/programs/$programId'
+      path: '/programs/$programId'
+      fullPath: '/programs/$programId'
+      preLoaderRoute: typeof ProgramsProgramIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/reports/$slug': {
       id: '/reports/$slug'
       path: '/reports/$slug'
       fullPath: '/reports/$slug'
       preLoaderRoute: typeof ReportsSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/orgs/$orgId/budgets/$budgetId': {
+      id: '/orgs/$orgId/budgets/$budgetId'
+      path: '/orgs/$orgId/budgets/$budgetId'
+      fullPath: '/orgs/$orgId/budgets/$budgetId'
+      preLoaderRoute: typeof OrgsOrgIdBudgetsBudgetIdRouteImport
       parentRoute: typeof rootRouteImport
     }
   }
@@ -88,7 +139,9 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   MethodRoute: MethodRoute,
+  ProgramsProgramIdRoute: ProgramsProgramIdRoute,
   ReportsSlugRoute: ReportsSlugRoute,
+  OrgsOrgIdBudgetsBudgetIdRoute: OrgsOrgIdBudgetsBudgetIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

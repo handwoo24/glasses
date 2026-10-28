@@ -1,37 +1,24 @@
-import { createFileRoute, notFound } from '@tanstack/react-router'
+import { createFileRoute, notFound, redirect } from '@tanstack/react-router'
 import { fetchReportDoc } from '#/features/reports/server/report-docs.functions'
+import { reportPath } from '#/features/reports/summary'
 import { ReportPage } from '#/features/reports/view/report-page'
+import {
+  ReportNotFound,
+  reportHead,
+} from '#/features/reports/view/report-route'
 
+/** 옛 주소. 리포트 주소는 평가 대상 경로로 바뀌었으므로 그리로 넘긴다 */
 export const Route = createFileRoute('/reports/$slug')({
-  // 문서 파싱은 서버 함수 안에서만 한다. 브라우저는 결과 JSON을 받아 그리기만 한다
   loader: async ({ params }) => {
     const doc = await fetchReportDoc({ data: { slug: params.slug } })
     if (!doc) throw notFound()
+    if (doc.subject)
+      throw redirect({ href: reportPath(doc.subject), statusCode: 301 })
     return doc
   },
-  head: ({ loaderData: a }) => {
-    return {
-      meta: a
-        ? [
-            { title: `${a.title} · ${a.project} | glasses` },
-            { name: 'description', content: a.description },
-          ]
-        : [],
-    }
-  },
+  head: ({ loaderData }) => reportHead(loaderData),
   component: ReportRoute,
-  notFoundComponent: () => (
-    <div className="page">
-      <div className="doc">
-        <header className="doc-head">
-          <h1>리포트를 찾을 수 없습니다</h1>
-          <p className="lede">
-            주소가 바뀌었거나 아직 게시하지 않은 리포트입니다.
-          </p>
-        </header>
-      </div>
-    </div>
-  ),
+  notFoundComponent: ReportNotFound,
 })
 
 function ReportRoute() {
