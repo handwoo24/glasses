@@ -19,9 +19,9 @@ interface MyRouterContext {
   queryClient: QueryClient
 }
 
-/** 제목체 도현, 본문체 본고딕 (glasses 디자인 시스템) */
+/** 제목·본문 본고딕, 인용 본명조 (glasses 디자인 시스템 v2) */
 const FONTS =
-  'https://fonts.googleapis.com/css2?family=Do+Hyeon&family=Noto+Sans+KR:wght@400;500;700&display=swap'
+  'https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&family=Noto+Serif+KR:wght@500&display=swap'
 
 export const Route = createRootRouteWithContext<MyRouterContext>()({
   beforeLoad: async () => {
@@ -34,11 +34,11 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
     meta: [
       { charSet: 'utf-8' },
       { name: 'viewport', content: 'width=device-width, initial-scale=1' },
-      { title: '고양시 공공사업 정보 | glasses' },
+      { title: 'glasses · 공공사업 리포트' },
       {
         name: 'description',
         content:
-          '고양특례시의 공공사업과 예산을 공개 자료로 정리하고 7개 축으로 평가한 공익 오픈소스 리포트',
+          '정부와 지자체의 공공사업과 예산을 공개 자료로 정리하고 7개 축으로 평가한 공익 오픈소스 리포트',
       },
     ],
     links: [
@@ -92,7 +92,7 @@ function SiteHeader() {
       <div className="topbar">
         <Link to="/" className="home">
           <b>glasses</b>
-          <span>고양시 공공사업 정보</span>
+          <span>공공사업 리포트</span>
         </Link>
         <nav aria-label="주 메뉴" className="site-nav">
           <Link to="/" activeOptions={{ exact: true }}>

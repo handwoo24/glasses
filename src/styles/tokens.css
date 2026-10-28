@@ -1,33 +1,40 @@
-/* glasses 디자인 시스템 토큰. 이름과 값은 디자인 시스템 아티팩트의 tokens.json과 같다 */
+/* glasses 디자인 시스템 v2 토큰. 이름과 값은 디자인 시스템 아티팩트의 tokens.json과 같다 */
 :root {
-  --ground: #edf0f6;
   --paper: #ffffff;
-  --ink: #111827;
-  --ink-soft: #4b5568;
-  --muted: #5e677a;
-  --line: #d8dde7;
-  --navy: #14213d;
-  --on-navy: #eef1f6;
-  --blue: #1e4fcf;
-  --blue-soft: #e5ecfc;
-  --ok: #1f7a4a;
-  --ok-soft: #e2f3e9;
-  --warn: #9a5a00;
-  --warn-soft: #fcefd8;
-  --bad: #b42318;
-  --bad-soft: #fce3e0;
+  --ground: #f6f5f2;
+  --ink: #1f2328;
+  --ink-soft: #4a4f57;
+  --muted: #6b7078;
+  --line: #e7e6e3;
+  --bar: #d3d3cf;
+  --navy: #2b3038;
+  --on-navy: #f6f5f2;
+  --blue: #4a63a8;
+  --blue-soft: #eef1f8;
+  --ok: #376e50;
+  --ok-soft: #eaf3ee;
+  --warn: #8c5a0e;
+  --warn-soft: #f7f0e3;
+  --bad: #b4463c;
+  --bad-soft: #f8ecea;
+  /* 그래프·링에서 판정색을 면으로 칠할 때. 흰 바탕 위 3:1 이상 */
+  --ok-mark: #376e50;
+  --warn-mark: #a8762a;
+  --bad-mark: #b4463c;
+  --none-mark: #d3d3cf;
   --font-display:
-    'Do Hyeon', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
+    'Noto Sans KR', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
   --font-body:
     'Noto Sans KR', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
-  --fs-micro: 12px;
-  --fs-small: 13.5px;
-  --fs-body: 15px;
-  --fs-lead: 17px;
-  --fs-d4: 1.25rem;
-  --fs-d3: 1.5rem;
-  --fs-d2: 2.2rem;
-  --fs-d1: 3.4rem;
+  --font-serif: 'Noto Serif KR', 'AppleMyungjo', 'Batang', serif;
+  --fs-micro: 12.5px;
+  --fs-small: 14px;
+  --fs-body: 16px;
+  --fs-lead: 18px;
+  --fs-d4: 1.375rem;
+  --fs-d3: 1.75rem;
+  --fs-d2: 2.75rem;
+  --fs-d1: 4rem;
   --sp-1: 4px;
   --sp-2: 8px;
   --sp-3: 12px;
@@ -35,34 +42,40 @@
   --sp-5: 20px;
   --sp-6: 24px;
   --sp-8: 32px;
+  --sp-16: 64px;
   --r-sm: 4px;
-  --r-md: 8px;
+  --r-md: 10px;
   --r-lg: 16px;
   --r-pill: 999px;
-  --shadow-card: 0 1px 0 #d8dde7, 0 10px 28px -20px rgba(17, 24, 39, 0.4);
-  --shadow-card-hover: 0 1px 0 #d8dde7, 0 14px 32px -18px rgba(17, 24, 39, 0.5);
+  --shadow-card: 0 12px 32px -12px rgba(31, 35, 40, 0.35), 0 0 0 1px #e7e6e3;
+  --shadow-card-hover: 0 0 0 2px #4a63a8;
   color-scheme: light;
 }
 @media (prefers-color-scheme: dark) {
   :root {
-    --ground: #0d1118;
-    --paper: #151a24;
-    --ink: #eef1f6;
-    --ink-soft: #bac2d2;
-    --muted: #8e97aa;
-    --line: #2a3242;
-    --navy: #22304f;
-    --on-navy: #eef1f6;
-    --blue: #8fb0ff;
-    --blue-soft: #1d2a4d;
-    --ok: #7fd1a2;
-    --ok-soft: #17331f;
-    --warn: #f2b35e;
-    --warn-soft: #3a2c14;
-    --bad: #ff8f84;
-    --bad-soft: #3d1e1b;
-    --shadow-card: 0 1px 0 #2a3242, 0 10px 28px -20px rgba(0, 0, 0, 0.6);
-    --shadow-card-hover: 0 1px 0 #2a3242, 0 14px 32px -18px rgba(0, 0, 0, 0.7);
+    --paper: #16181c;
+    --ground: #1e2126;
+    --ink: #ecedee;
+    --ink-soft: #bfc3c9;
+    --muted: #949aa3;
+    --line: #2e3238;
+    --bar: #3a3e45;
+    --navy: #3a3f48;
+    --on-navy: #ecedee;
+    --blue: #9db0e3;
+    --blue-soft: #232b3d;
+    --ok: #8cc7a5;
+    --ok-soft: #1c2b23;
+    --warn: #e2b36b;
+    --warn-soft: #2e2617;
+    --bad: #e5958c;
+    --bad-soft: #33201e;
+    --ok-mark: #8cc7a5;
+    --warn-mark: #e2b36b;
+    --bad-mark: #e5958c;
+    --none-mark: #3a3e45;
+    --shadow-card: 0 12px 32px -12px rgba(0, 0, 0, 0.7), 0 0 0 1px #2e3238;
+    --shadow-card-hover: 0 0 0 2px #9db0e3;
     color-scheme: dark;
   }
 }

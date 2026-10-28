@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest'
-import { answerCounts, overallReason, summarize } from './assessment'
-import type { AxisId } from './axes'
+import { answerCounts, summarize, verdictReason } from './assessment'
+import type { AxisId, AxisStatus } from './axes'
 import { AXIS_IDS } from './axes'
 import type { AxisDoc } from './report-doc'
 
@@ -32,20 +32,78 @@ describe('summarize', () => {
   })
 })
 
-describe('overallReason', () => {
-  test('판정마다 이유 문장이 다르다', () => {
-    expect(overallReason('fix', 3)).toBe('‘개선 필요’인 축이 3개여서')
-    expect(overallReason('watch', 0)).toBe(
-      '‘개선 필요’인 축은 없지만 핵심 축(②·③)이 모두 ‘순항’은 아니어서',
+describe('verdictReason (판정 이유 한두 문장)', () => {
+  const statuses = (over: Partial<Record<AxisId, AxisStatus>>) =>
+    Object.fromEntries(
+      AXIS_IDS.map((a) => [a, over[a] ?? 'on-track']),
+    ) as Record<AxisId, AxisStatus>
+
+  test('개선 필요가 두 축 이상이면 그 축을 모두 적는다 (달릴고양)', () => {
+    expect(
+      verdictReason(
+        statuses({
+          goal: 'unknown',
+          progress: 'watch',
+          outcome: 'unknown',
+          cost: 'fix',
+          execution: 'watch',
+          sustainability: 'fix',
+          accountability: 'fix',
+        }),
+      ),
+    ).toBe(
+      '④ 비용 · ⑥ 지속성 · ⑦ 투명성·책임 세 축이 ‘개선 필요’입니다. ‘개선 필요’가 두 축 이상이면 종합 판정도 ‘개선 필요’입니다.',
     )
-    expect(overallReason('watch', 1)).toBe(
-      '‘개선 필요’인 축이 1개이고 핵심 축이 모두 ‘순항’은 아니어서',
+  })
+
+  test('개선 필요가 하나이고 핵심 축이 순항이 아니면 둘 다 적는다 (전기차 보조금)', () => {
+    expect(
+      verdictReason(
+        statuses({
+          goal: 'watch',
+          progress: 'watch',
+          cost: 'watch',
+          execution: 'watch',
+          sustainability: 'fix',
+          accountability: 'watch',
+        }),
+      ),
+    ).toBe(
+      '‘개선 필요’는 ⑥ 지속성 하나이고, ② 진척이 ‘순항’이 아닙니다. ‘개선 필요’가 한 축이거나 ②·③ 가운데 ‘순항’이 아닌 축이 있으면 ‘지켜볼 점 있음’입니다.',
     )
-    expect(overallReason('unknown', 0)).toBe(
-      '핵심 축(②·③)을 아직 판단할 수 없어',
+  })
+
+  test('개선 필요 없이 핵심 축만 순항이 아니면 그 축만 적는다', () => {
+    expect(verdictReason(statuses({ outcome: 'watch' }))).toBe(
+      '③ 성과가 ‘순항’이 아닙니다. ‘개선 필요’가 한 축이거나 ②·③ 가운데 ‘순항’이 아닌 축이 있으면 ‘지켜볼 점 있음’입니다.',
     )
-    expect(overallReason('on-track', 0)).toBe(
-      '핵심 축이 순항이고 ‘개선 필요’인 축이 없어',
+    expect(
+      verdictReason(statuses({ progress: 'watch', outcome: 'unknown' })),
+    ).toBe(
+      '② 진척과 ③ 성과가 ‘순항’이 아닙니다. ‘개선 필요’가 한 축이거나 ②·③ 가운데 ‘순항’이 아닌 축이 있으면 ‘지켜볼 점 있음’입니다.',
+    )
+  })
+
+  test('개선 필요가 하나이고 핵심 축이 순항이면 그 축만 적는다', () => {
+    expect(verdictReason(statuses({ cost: 'fix' }))).toBe(
+      '‘개선 필요’는 ④ 비용 하나입니다. ‘개선 필요’가 한 축이거나 ②·③ 가운데 ‘순항’이 아닌 축이 있으면 ‘지켜볼 점 있음’입니다.',
+    )
+  })
+
+  test('핵심 축이 개선 필요면 그 축을 적는다', () => {
+    expect(verdictReason(statuses({ progress: 'fix', cost: 'fix' }))).toBe(
+      '핵심 축인 ② 진척이 ‘개선 필요’입니다. ② 진척이나 ③ 성과가 ‘개선 필요’이면 종합 판정도 ‘개선 필요’입니다.',
+    )
+  })
+
+  test('판단 불가와 순항', () => {
+    expect(
+      verdictReason(statuses({ progress: 'unknown', outcome: 'unknown' })),
+    ).toBe(
+      '② 진척과 ③ 성과를 아직 판단할 수 없고 ‘개선 필요’인 축이 없어 ‘아직 판단 불가’입니다.',
+    )
+    expect(verdictReason(statuses({}))).toBe(
+      '② 진척과 ③ 성과가 ‘순항’이고 ‘개선 필요’인 축이 없어 ‘순항’입니다.',
     )
   })
 })

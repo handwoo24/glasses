@@ -51,6 +51,8 @@ export interface AxisDoc {
 
 export interface ReportDoc {
   slug: string
+  /** 평가 대상 경로(programs/… 또는 orgs/…/budgets/…). 게시 문서에서 온다 */
+  subject?: string
   project: string
   title: string
   description: string
@@ -99,7 +101,7 @@ export interface ReportDoc {
 /** 홈 카드에 필요한 것만 */
 export type ReportSummary = Pick<
   ReportDoc,
-  'slug' | 'project' | 'title' | 'verdict'
+  'slug' | 'project' | 'title' | 'verdict' | 'asOf' | 'nextDates'
 > & {
   axes: Record<AxisId, Pick<AxisDoc, 'status' | 'evidence'>>
 }
@@ -116,6 +118,8 @@ export function toSummary(doc: ReportDoc): ReportSummary {
     project: doc.project,
     title: doc.title,
     verdict: doc.verdict,
+    asOf: doc.asOf,
+    nextDates: doc.nextDates,
     axes,
   }
 }

@@ -108,19 +108,29 @@ export const OVERALL_RULES: ReadonlyArray<string> = [
   '②와 ③이 ‘순항’이고 ‘개선 필요’인 축이 없다 → 순항',
 ]
 
-/** 종합 판정: 위에서부터 차례로 보고 처음 해당하는 규칙으로 정한다 */
-export function overallStatus(axes: AxisStatuses): AxisStatus {
+/** OVERALL_RULES 각 줄의 결과 */
+const OVERALL_RULE_RESULT: ReadonlyArray<AxisStatus> = [
+  'fix',
+  'fix',
+  'unknown',
+  'watch',
+  'on-track',
+]
+
+/** 위에서부터 차례로 보고 처음 해당하는 규칙의 번호(0부터, OVERALL_RULES 순서) */
+export function overallRule(axes: AxisStatuses): number {
   const fixes = AXIS_IDS.filter((a) => axes[a] === 'fix').length
   const { progress, outcome } = axes
-  if (progress === 'fix' || outcome === 'fix') return 'fix'
-  if (fixes >= 2) return 'fix'
-  if (progress === 'unknown' && outcome === 'unknown' && fixes === 0) {
-    return 'unknown'
-  }
-  if (fixes === 1 || progress !== 'on-track' || outcome !== 'on-track') {
-    return 'watch'
-  }
-  return 'on-track'
+  if (progress === 'fix' || outcome === 'fix') return 0
+  if (fixes >= 2) return 1
+  if (progress === 'unknown' && outcome === 'unknown' && fixes === 0) return 2
+  if (fixes === 1 || progress !== 'on-track' || outcome !== 'on-track') return 3
+  return 4
+}
+
+/** 종합 판정: 위에서부터 차례로 보고 처음 해당하는 규칙으로 정한다 */
+export function overallStatus(axes: AxisStatuses): AxisStatus {
+  return OVERALL_RULE_RESULT[overallRule(axes)]
 }
 
 /** 종합 근거 수준: ‘충분’이 과반이면 높음, ‘부족’이 과반이면 낮음, 그 밖에는 중간 */

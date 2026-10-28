@@ -109,7 +109,7 @@ export function MethodFold({ typeNote, indicators }: MethodFoldProps) {
       summary={`평가 체계 v${AXES_VERSION}`}
     >
       <p>
-        사업을 평가하고, 사람과 의도는 평가하지 않습니다. 판정 기준은 시가
+        사업을 평가하고, 사람과 의도는 평가하지 않습니다. 판정 기준은 기관이
         내놓은 사업계획서·예산서·공고문과 법령, 비슷한 사업의 실적입니다.
         {typeNote && ` ${typeNote}`}
       </p>

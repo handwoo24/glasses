@@ -17,7 +17,7 @@ async function readPublished(): Promise<ReadonlyArray<ReportDoc>> {
     .map((d) => ({ slug: d.id, ...PublishedSchema.parse(d.data()) }))
     .sort((a, b) => a.order - b.order)
   const docs = await Promise.all(
-    entries.map(async ({ slug, report }) => {
+    entries.map(async ({ slug, report, subject }) => {
       const record = await store.doc(report).get()
       if (!record.exists)
         throw new Error(`게시 ${slug}의 리포트가 없다: ${report}`)
@@ -26,7 +26,7 @@ async function readPublished(): Promise<ReadonlyArray<ReportDoc>> {
       )
       if (doc.slug !== slug)
         throw new Error(`게시 주소 ${slug}와 리포트 slug ${doc.slug}가 다르다`)
-      return doc
+      return { ...doc, subject }
     }),
   )
   return docs

@@ -49,6 +49,7 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST)(
 
       const doc = await getReportDoc(SLUG)
       expect(doc?.title).toBe('자율주행버스 ‘달릴고양’')
+      expect(doc?.subject).toBe(PROGRAM)
       expect(JSON.parse(JSON.stringify(doc))).toEqual(doc)
       expect((await publishedDocs()).at(-1)?.slug).toBe(SLUG)
       expect(await getReportDoc('nope')).toBeUndefined()

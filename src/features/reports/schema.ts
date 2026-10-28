@@ -4,7 +4,7 @@ import { z } from 'zod'
  * 리포트 양식(v0.5) — 감시(watchdog) 리포트.
  * 시민이 읽는 본문(30초 요약 → 판정과 알아야 할 것 → 돈의 흐름 → 잘 됐나 → 다음에 할 일)과
  * 접어 두는 감사용 상세(점검표·위험 신호·계약·감시 기록·공개 문서)로 나뉜다.
- * 모든 수치·판단은 sources의 id로 근거를 단다. 등급 계산 규칙은 rubric.ts.
+ * 모든 수치·판단은 sources의 id로 근거를 단다. 종합 판정 규칙은 axes.ts.
  */
 
 export const ALLOWED_SOURCE_HOSTS = [

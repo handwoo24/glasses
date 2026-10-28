@@ -12,7 +12,12 @@ import type { Kind } from './paths'
 import { ReportRecordSchema } from './schemas'
 
 const DEFAULT_PROJECT = 'demo-glasses'
-let cached: Firestore | undefined
+/**
+ * 개발 서버가 이 모듈을 다시 읽어도(HMR) firebase-admin 앱은 남아 있다.
+ * 이미 쓴 Firestore에 settings()를 다시 부르면 오류가 나므로 인스턴스를 전역에 둔다.
+ */
+const CACHE = Symbol.for('glasses.firestore')
+const holder = globalThis as { [CACHE]?: Firestore }
 
 function app() {
   return (
@@ -34,11 +39,12 @@ export function db(): Firestore {
     throw new Error(
       'FIRESTORE_EMULATOR_HOST(에뮬레이터) 또는 GLASSES_FIRESTORE_PROJECT(운영)를 정해야 한다',
     )
+  const cached = holder[CACHE]
   if (cached) return cached
   const store = getFirestore(app())
   // 선택 필드(undefined)는 쓰지 않는다. 문서를 통째로 쓸 때 빠진 필드는 지워진다
   store.settings({ ignoreUndefinedProperties: true })
-  cached = store
+  holder[CACHE] = store
   return store
 }
 

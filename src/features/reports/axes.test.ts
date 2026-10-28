@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { overallEvidence, overallStatus } from './axes'
+import { overallEvidence, overallRule, overallStatus } from './axes'
 import type { AxisStatus, AxisStatuses } from './axes'
 
 const axes = (over: Partial<AxisStatuses> = {}): AxisStatuses => ({
@@ -62,6 +62,24 @@ describe('overallStatus (종합 판정 규칙, 위에서부터 처음 해당하�
       accountability: 'fix',
     }
     expect(overallStatus(dallil as AxisStatuses)).toBe('fix')
+  })
+})
+
+describe('overallRule (몇 번째 규칙에 걸렸나, 0부터)', () => {
+  test('규칙 순서대로 처음 해당하는 줄의 번호를 돌려준다', () => {
+    expect(overallRule(axes({ progress: 'fix' }))).toBe(0)
+    expect(overallRule(axes({ cost: 'fix', accountability: 'fix' }))).toBe(1)
+    expect(overallRule(axes({ progress: 'unknown', outcome: 'unknown' }))).toBe(
+      2,
+    )
+    expect(overallRule(axes({ cost: 'fix' }))).toBe(3)
+    expect(overallRule(axes())).toBe(4)
+  })
+
+  test('핵심 축이 개선 필요면 다른 축 개수보다 먼저 0번 규칙', () => {
+    expect(
+      overallRule(axes({ outcome: 'fix', cost: 'fix', accountability: 'fix' })),
+    ).toBe(0)
   })
 })
 

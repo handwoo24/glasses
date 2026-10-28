@@ -75,10 +75,9 @@
   background: var(--paper);
   border-radius: var(--r-lg);
   padding: var(--sp-6) var(--sp-5);
-  border-bottom: 6px solid var(--blue);
+  border: 1px solid var(--line);
   display: grid;
   gap: var(--sp-3);
-  box-shadow: var(--shadow-card);
 }
 .doc-head h1 {
   font-size: clamp(2rem, 1.5rem + 2.4vw, 3rem);
@@ -93,7 +92,7 @@
 }
 .doc .inner h3 {
   font-family: var(--font-display);
-  font-weight: 400;
+  font-weight: 900;
   font-size: var(--fs-d4);
 }
 .terms {
