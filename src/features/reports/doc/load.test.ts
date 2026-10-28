@@ -4,8 +4,8 @@ import { describe, expect, test } from 'vitest'
 import { AXIS_IDS } from '../axes'
 import { ReportPage } from '../view/report-page'
 import { loadReportDoc } from './load'
-import md from '#/content/reports/autonomous-bus-dallil-goyang.md?raw'
-import budgetMd from '#/content/reports/budget-2026-3rd-supplementary.md?raw'
+import md from './__fixtures__/autonomous-bus.md?raw'
+import budgetMd from './__fixtures__/budget-supplementary.md?raw'
 
 /** 문서의 한 곳을 바꾼다. 바꿀 글자가 없으면 테스트가 헛돌지 않게 실패 */
 function edit(from: string, to: string, src: string = md): string {

@@ -1,7 +1,14 @@
-# Firebase App Hosting 실행 설정. 빌드는 package.json의 build, 실행은 start(Nitro node 서버, PORT 사용)
+# Firebase App Hosting 실행 설정. 빌드는 Nitro의 firebase_app_hosting preset이 자동으로 맡는다
 runConfig:
   minInstances: 0
   maxInstances: 2
   concurrency: 80
   cpu: 1
   memoryMiB: 512
+
+env:
+  # 서버가 게시 리포트를 읽는 Firestore (src/features/reports/server)
+  - variable: GLASSES_FIRESTORE_PROJECT
+    value: glasses-8bd7a
+    availability:
+      - RUNTIME

@@ -1,5 +1,5 @@
 /**
- * 리포트 문서(.md) → 화면 데이터(ReportDoc). 양식은 src/content/reports/README.md.
+ * 리포트 문서(.md) → 화면 데이터(ReportDoc). 양식은 FORMAT.md.
  * 저장 위치(git, Firestore, Storage)와 무관하게 문자열만 받는다. 양식이 틀리면 어느 구역이 틀렸는지와 함께 실패한다.
  */
 import { z } from 'zod'

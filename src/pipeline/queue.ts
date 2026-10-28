@@ -13,17 +13,20 @@ function nowIso(now: Date): string {
 /** 새 작업을 큐에 넣는다. id는 단계-사업-시각 */
 export async function enqueue(
   stage: Stage,
-  program: string | undefined,
+  subject: string | undefined,
   inputs: ReadonlyArray<string>,
   now = new Date(),
 ): Promise<string> {
   const stamp = now.toISOString().replace(/\D/g, '').slice(0, 14)
-  const id = [stage, program?.replace('.', '-'), stamp]
-    .filter(Boolean)
-    .join('-')
+  const slug = subject
+    ?.replace(/^programs\//, '')
+    .replace(/^orgs\//, '')
+    .replace(/[^a-z0-9]+/gi, '-')
+    .toLowerCase()
+  const id = [stage, slug, stamp].filter(Boolean).join('-')
   const task: Task = {
     stage,
-    program,
+    subject,
     status: 'queued',
     attempt: 0,
     inputs: [...inputs],
@@ -43,12 +46,12 @@ function claimable(t: Task, now: Date): boolean {
   )
 }
 
-/** 단계의 가장 오래된 작업을 가져간다(사업을 주면 그 사업만). 없으면 undefined */
+/** 단계의 가장 오래된 작업을 가져간다(대상을 주면 그 대상만). 없으면 undefined */
 export async function claim(
   stage: Stage,
   leaseMinutes = 30,
   now = new Date(),
-  program?: string,
+  subject?: string,
 ): Promise<{ id: string; task: Task } | undefined> {
   const store = db()
   return store.runTransaction(async (tx) => {
@@ -60,7 +63,7 @@ export async function claim(
     )
     const next = snap.docs
       .map((d) => ({ id: d.id, task: TaskSchema.parse(d.data()) }))
-      .filter(({ task }) => !program || task.program === program)
+      .filter(({ task }) => !subject || task.subject === subject)
       .filter(({ task }) => claimable(task, now))
       .sort((a, b) => a.task.createdAt.localeCompare(b.task.createdAt))
       .at(0)

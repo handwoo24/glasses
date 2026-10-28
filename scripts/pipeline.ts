@@ -14,11 +14,11 @@ const USAGE = `사용법: npm run pipeline -- <명령>
   put <문서 경로> <파일.yaml|.json|.md> [--status draft|in-review|published]
   get <문서 경로>
   ls <컬렉션 경로>
-  enqueue <단계> [사업 id] [--input <경로> ...]
-  claim <단계> [--lease 분] [--program 사업 id]
+  enqueue <단계> [평가 대상 경로] [--input <경로> ...]
+  claim <단계> [--lease 분] [--subject 평가 대상 경로]
   done <작업 id> [산출물 경로 ...]
   fail <작업 id> <사유>
-  check-facts <사업 id>   인용이 원문에 있는지, 자료 파일이 바뀌지 않았는지
+  check-facts <평가 대상 경로>   인용이 원문에 있는지, 자료 파일이 바뀌지 않았는지
 단계: ${STAGES.join(', ')}
 문서 경로:
   ${PATH_HELP.join('\n  ')}`
@@ -89,7 +89,7 @@ async function run(argv: ReadonlyArray<string>): Promise<void> {
             stage(a),
             Number(named.lease?.at(0) ?? 30),
             new Date(),
-            named.program?.at(0),
+            named.subject?.at(0),
           ),
         ),
       )

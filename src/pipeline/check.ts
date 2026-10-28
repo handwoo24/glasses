@@ -33,22 +33,25 @@ async function checkSourced(
   files: Map<string, string>,
 ): Promise<Array<FactProblem>> {
   const material = MaterialSchema.parse(await get(`materials/${fact.material}`))
-  if (!files.has(material.file)) {
-    const bytes = await readMaterialFile(material.file)
+  // 인용은 추출 텍스트가 있으면 텍스트에서, 없으면(원본이 글자면) 원본에서 찾는다
+  const file = material.files.text ?? material.files.original
+  const expected = material.files.text ? material.textSha256 : material.sha256
+  if (!files.has(file)) {
+    const bytes = await readMaterialFile(file)
     const sha = createHash('sha256').update(bytes).digest('hex')
-    if (sha !== material.sha256)
-      return [{ fact: id, problem: `자료 파일이 바뀜: ${material.file}` }]
-    files.set(material.file, bytes.toString('utf8'))
+    if (expected && sha !== expected)
+      return [{ fact: id, problem: `자료 파일이 바뀜: ${file}` }]
+    files.set(file, bytes.toString('utf8'))
   }
-  const text = files.get(material.file) ?? ''
+  const text = files.get(file) ?? ''
   return fact.quote && quoteMatches(text, fact.quote)
     ? []
     : [{ fact: id, problem: `인용이 원문에 없음: ${fact.quote}` }]
 }
 
-/** 사업의 사실 원장 전체를 검사한다. 문제가 없으면 빈 배열 */
-export async function checkFacts(program: string): Promise<Array<FactProblem>> {
-  const rows = await list(`programs/${program}/facts`)
+/** 평가 대상(programs/… 또는 orgs/…/budgets/…)의 사실 원장 전체를 검사한다. 문제가 없으면 빈 배열 */
+export async function checkFacts(subject: string): Promise<Array<FactProblem>> {
+  const rows = await list(`${subject}/facts`)
   const ids = new Set(rows.map((r) => r.id))
   const files = new Map<string, string>()
   const problems: Array<FactProblem> = []

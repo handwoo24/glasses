@@ -1,5 +1,5 @@
 import { Link, createFileRoute } from '@tanstack/react-router'
-import { listReportSummaries } from '#/content/report-docs.functions'
+import { listReportSummaries } from '#/features/reports/server/report-docs.functions'
 import {
   AXES_VERSION,
   AXIS_IDS,

@@ -4,39 +4,82 @@
  * 이 양식에 맞는 문서만 쓴다. 단계별 쓰임은 src/pipeline/README.md.
  */
 import { z } from 'zod'
-import { SourceSchema } from '#/features/reports/schema'
 
 const isoDate = z.iso.date()
 const isoDateTime = z.iso.datetime({ offset: true })
+const httpsUrl = z.url({ protocol: /^https?$/ })
 
-/** 기관.사업 (예: goyang.autonomous-bus). 사업은 연도와 무관한 고정 id */
-export const PROGRAM_ID = /^[a-z0-9-]+\.[a-z0-9-]+$/
-/** 자료 id: m- + 원문 SHA-256 앞 12자리 */
+/**
+ * 기관 id: 행정표준 기관코드 7자리(고양시 3940000). 공공기관은 ALIO 기관코드에 alio- 접두어.
+ * 지방재정365 세부사업 코드의 앞 7자리와 같다.
+ */
+export const ORG = '(?:\\d{7}|alio-[A-Za-z0-9]+)'
+export const ORG_ID = new RegExp(`^${ORG}$`)
+/** 사업 id: 기관코드.사업 (3940000.autonomous-bus). 연도와 무관한 고정 id */
+export const PROGRAM_ID = new RegExp(`^${ORG}\\.[a-z0-9-]+$`)
+/** 재정 문서 id: 연도-구분 (2026-original, 2026-supplementary-3, 2025-settlement) */
+export const BUDGET_ID = /^\d{4}-(?:original|supplementary-\d+|settlement)$/
+/** 평가 대상 경로: 사업 또는 재정 문서 */
+export const SUBJECT_PATH = new RegExp(
+  `^(?:programs/${ORG}\\.[a-z0-9-]+|orgs/${ORG}/budgets/\\d{4}-(?:original|supplementary-\\d+|settlement))$`,
+)
+/** 자료 id: m- + 원본 파일 SHA-256 앞 12자리 */
 export const MATERIAL_ID = /^m-[0-9a-f]{12}$/
+
+export const ORG_TYPES = [
+  '중앙행정기관',
+  '광역자치단체',
+  '기초자치단체',
+  '지방의회',
+  '교육청',
+  '공공기관',
+] as const
+
+/** 기관 레지스트리 */
+export const OrgSchema = z.strictObject({
+  name: z.string().min(1),
+  type: z.enum(ORG_TYPES),
+  /** 상급 기관 (기초 → 광역, 소속기관 → 부처) */
+  parent: z.string().regex(ORG_ID).optional(),
+  /** 행정구역 코드 (시도 2자리 + 시군구 3자리, 고양시 41280) */
+  region: z
+    .string()
+    .regex(/^\d{2}(?:\d{3})?$/)
+    .optional(),
+  /** 지방재정365 자치단체 코드 (고양시 4120000) */
+  lafCd: z
+    .string()
+    .regex(/^\d{7}$/)
+    .optional(),
+  /** 주소·표시용 별칭 (goyang). 겹칠 수 있으므로 id로 쓰지 않는다 */
+  slug: z.string().regex(/^[a-z0-9-]+$/),
+  /** 리포트 출처로 허용할 이 기관의 누리집 */
+  sourceHosts: z.array(z.string().min(1)).default([]),
+  updatedAt: isoDate,
+})
+
+/** 공식 분야·부문 (기능별 분류). 이름만 알면 이름만 적는다 */
+const FieldSchema = z.strictObject({
+  sector: z.string().min(1),
+  subsector: z.string().min(1).optional(),
+})
 
 /** 사업 카드: 사업의 정체성. 평가 시점과 무관하다 */
 export const ProgramSchema = z.strictObject({
   name: z.string().min(1),
-  /** 기관 id (goyang, goyang-council, me …) */
-  org: z.string().regex(/^[a-z0-9-]+$/),
+  org: z.string().regex(ORG_ID),
+  /** 조회용으로 기관의 행정구역을 함께 적는다 */
+  region: z
+    .string()
+    .regex(/^\d{2}(?:\d{3})?$/)
+    .optional(),
+  field: FieldSchema.optional(),
   /** 상위 사업 (달릴고양 ⊂ 거점형 스마트시티) */
   parent: z.string().regex(PROGRAM_ID).optional(),
   /** 국고보조사업이면 중앙 사업 */
   nationalProgram: z.string().regex(PROGRAM_ID).optional(),
-  /** 연도별 공식 세부사업. 이름·코드가 해마다 바뀌어도 여기만 늘린다 */
-  budgetLines: z
-    .array(
-      z.strictObject({
-        year: z.number().int().min(2000).max(2100),
-        code: z.string().min(1).optional(),
-        name: z.string().min(1),
-        /** 원 */
-        amount: z.number().int().nonnegative(),
-        /** 국비·도비·시군비·기금 */
-        fund: z.enum(['국비', '도비', '시군비', '기금', '혼합']).optional(),
-      }),
-    )
-    .default([]),
+  /** 세부사업 코드 (예산 카탈로그 budgetLines/{코드}-{연도}). 사업이 여러 세부사업에 걸치면 모두 적는다 */
+  budgetLines: z.array(z.string().min(1)).default([]),
   status: z.enum(['계획', '진행 중', '완료', '중단']),
   priority: z.strictObject({
     score: z.enum(['high', 'medium', 'low']),
@@ -45,19 +88,101 @@ export const ProgramSchema = z.strictObject({
   updatedAt: isoDate,
 })
 
-/** 수집한 원자료 한 건. 원본 파일은 Cloud Storage(로컬에서는 resources/)에 둔다 */
+/** 재정 문서: 본예산·추경·결산 한 판 (orgs/{기관}/budgets/{연도-구분}) */
+export const BudgetDocSchema = z.strictObject({
+  name: z.string().min(1),
+  year: z.number().int().min(2000).max(2100),
+  kind: z.enum(['본예산', '추경', '결산']),
+  /** 추경 차수 */
+  round: z.number().int().positive().optional(),
+  /** 의회 의결일 */
+  decidedAt: isoDate.optional(),
+  /** 총액(원) */
+  total: z.number().int().nonnegative().optional(),
+  updatedAt: isoDate,
+})
+
+/**
+ * 예산 카탈로그 한 줄: 공식 세부사업의 한 해 (budgetLines/{세부사업 코드}-{연도}).
+ * 지방은 지방재정365 세부사업 코드(3940000202330652: 기관코드 + 처음 등록한 해 + 일련번호)로,
+ * 코드가 해마다 유지되므로 사업 카드에는 연도 없이 코드만 적는다. 중앙은 cg-{열린재정 코드}.
+ */
+export const BudgetLineSchema = z.strictObject({
+  code: z.string().regex(/^[A-Za-z0-9-]+$/),
+  org: z.string().regex(ORG_ID),
+  year: z.number().int().min(2000).max(2100),
+  name: z.string().min(1),
+  account: z.string().min(1).optional(),
+  field: FieldSchema.optional(),
+  /** 원 단위. 지방재정365는 예산현액·국비·시도비·시군구비·기타·지출액·집행잔액 */
+  amounts: z.record(z.string(), z.number()),
+  /** 연결된 사업 (없으면 아직 사업으로 정리하지 않은 항목) */
+  program: z.string().regex(PROGRAM_ID).optional(),
+  source: z.string().min(1),
+  asOf: isoDate,
+})
+
+export const MATERIAL_KINDS = [
+  '보도자료',
+  '예산서',
+  '회의록',
+  '계약정보',
+  '공고',
+  '집행정보',
+  '감사',
+  '법령',
+  '목록',
+  '기타',
+] as const
+
+/**
+ * 수집한 원자료 한 건 (materials/{자료 id}). 파일은 Storage의 materials/{자료 id}/ 아래에 둔다.
+ * 경로가 내용 해시로만 정해지므로 기관·사업 정리가 바뀌어도 파일은 움직이지 않는다.
+ */
 export const MaterialSchema = z.strictObject({
   title: z.string().min(1),
-  org: z.string().min(1),
-  kind: SourceSchema.shape.kind,
-  url: SourceSchema.shape.url,
-  publishedAt: isoDate,
+  kind: z.enum(MATERIAL_KINDS),
+  /** 원문을 공개한 곳 (조달청 나라장터, 고양특례시의회 …) */
+  publisher: z.string().min(1),
+  url: httpsUrl,
+  /** 요청 파라미터가 있는 조회 결과면 그 값 */
+  params: z.string().optional(),
+  publishedAt: isoDate.optional(),
   fetchedAt: isoDate,
+  /** 원본 파일 SHA-256 */
   sha256: z.string().regex(/^[0-9a-f]{64}$/),
-  license: z.string().min(1),
-  /** 원본(또는 추출 텍스트) 위치 */
-  file: z.string().min(1),
-  programs: z.array(z.string().regex(PROGRAM_ID)).min(1),
+  files: z.strictObject({
+    /** materials/{자료 id}/original.{확장자} */
+    original: z.string().min(1),
+    /** 추출 텍스트 materials/{자료 id}/text.txt (원본이 글자가 아닐 때) */
+    text: z.string().min(1).optional(),
+  }),
+  textSha256: z
+    .string()
+    .regex(/^[0-9a-f]{64}$/)
+    .optional(),
+  license: z.string().min(1).optional(),
+  /** 다루는 기관 (레지스트리에 있는 기관만) */
+  about: z.array(z.string().regex(ORG_ID)).default([]),
+  /** 쓰이는 평가 대상 */
+  subjects: z.array(z.string().regex(SUBJECT_PATH)).default([]),
+})
+
+/** 사람이 남긴 배경 메모 (수집 노트, 사업 요약). 평가 근거가 아니라 작업 맥락이다 */
+export const NoteSchema = z.strictObject({
+  title: z.string().min(1),
+  markdown: z.string().min(1),
+  updatedAt: isoDate,
+})
+
+/** 게시: 사이트에 보이는 리포트 (published/{주소}). 사람이 승인해 쓴다 */
+export const PublishedSchema = z.strictObject({
+  /** 게시할 리포트 경로 (…/reports/{기준일}) */
+  report: z.string().min(1),
+  subject: z.string().regex(SUBJECT_PATH),
+  /** 홈 목록 순서 (작을수록 앞) */
+  order: z.number().int().nonnegative(),
+  publishedAt: isoDateTime,
 })
 
 /** 사람 이름을 가리는 표기. 원문 검사(check-facts)에서는 아무 이름(한글 2~4자)과 맞춰 본다 */
@@ -158,7 +283,7 @@ export const ReviewSchema = z
     { message: '중요도 높음 지적이 있으면 verdict는 fail' },
   )
 
-/** 리포트 한 판. 본문은 리포트 문서 양식(src/content/reports/README.md)의 마크다운 */
+/** 리포트 한 판. 본문은 리포트 문서 양식(src/features/reports/doc/FORMAT.md)의 마크다운 */
 export const ReportRecordSchema = z.strictObject({
   markdown: z.string().min(1),
   status: z.enum(['draft', 'in-review', 'published']),
@@ -176,7 +301,8 @@ export const TASK_STATUSES = ['queued', 'running', 'done', 'failed'] as const
 /** 작업 큐 한 건 */
 export const TaskSchema = z.strictObject({
   stage: z.enum(STAGES),
-  program: z.string().regex(PROGRAM_ID).optional(),
+  /** 평가 대상 (programs/… 또는 orgs/…/budgets/…) */
+  subject: z.string().regex(SUBJECT_PATH).optional(),
   status: z.enum(TASK_STATUSES),
   attempt: z.number().int().nonnegative(),
   /** 실행 중인 작업을 다른 실행이 가져가지 못하는 시각 */
@@ -190,7 +316,12 @@ export const TaskSchema = z.strictObject({
   updatedAt: isoDateTime,
 })
 
+export type Org = z.infer<typeof OrgSchema>
 export type Program = z.infer<typeof ProgramSchema>
+export type BudgetDoc = z.infer<typeof BudgetDocSchema>
+export type BudgetLine = z.infer<typeof BudgetLineSchema>
+export type Note = z.infer<typeof NoteSchema>
+export type Published = z.infer<typeof PublishedSchema>
 export type Material = z.infer<typeof MaterialSchema>
 export type Fact = z.infer<typeof FactSchema>
 export type Absence = z.infer<typeof AbsenceSchema>

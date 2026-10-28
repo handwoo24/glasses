@@ -1,5 +1,5 @@
 import { createFileRoute, notFound } from '@tanstack/react-router'
-import { fetchReportDoc } from '#/content/report-docs.functions'
+import { fetchReportDoc } from '#/features/reports/server/report-docs.functions'
 import { ReportPage } from '#/features/reports/view/report-page'
 
 export const Route = createFileRoute('/reports/$slug')({

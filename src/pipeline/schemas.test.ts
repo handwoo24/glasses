@@ -100,23 +100,35 @@ describe('검증 기록 양식', () => {
 })
 
 describe('경로', () => {
-  test('정해진 경로는 양식과 사업 id를 찾는다', () => {
-    expect(resolve('programs/goyang.autonomous-bus').kind).toBe('program')
-    const fact = resolve('programs/goyang.autonomous-bus/facts/f12')
-    expect(fact).toMatchObject({
-      kind: 'fact',
-      program: 'goyang.autonomous-bus',
-    })
-    expect(resolve('materials/m-7994c9640ce6').kind).toBe('material')
-    expect(resolve('programs/goyang.bus/reports/2026-10-27').kind).toBe(
+  test.each([
+    ['orgs/3940000', 'org', undefined],
+    ['orgs/3940000/budgets/2026-supplementary-3', 'budget', 'orgs/3940000'],
+    ['orgs/3940000/notes/finance-2026', 'note', 'orgs/3940000'],
+    ['programs/3940000.autonomous-bus', 'program', undefined],
+    [
+      'programs/3940000.autonomous-bus/facts/f12',
+      'fact',
+      'programs/3940000.autonomous-bus',
+    ],
+    [
+      'orgs/3940000/budgets/2026-supplementary-3/reports/2026-10-27',
       'report',
-    )
+      'orgs/3940000/budgets/2026-supplementary-3',
+    ],
+    ['budgetLines/3940000202330652-2026', 'budgetLine', undefined],
+    ['materials/m-7994c9640ce6', 'material', undefined],
+    ['published/autonomous-bus-dallil-goyang', 'published', undefined],
+  ])('%s → %s', (path, kind, parent) => {
+    expect(resolve(path)).toMatchObject({ kind, parent })
   })
 
   test.each([
-    'programs/goyang',
-    'programs/goyang.bus/facts/x1',
-    'programs/goyang.bus/notes/n1',
+    'programs/goyang.autonomous-bus',
+    'programs/3940000',
+    'orgs/goyang',
+    'orgs/3940000/budgets/2026-extra',
+    'programs/3940000.bus/notes/N1',
+    'programs/3940000.bus/files/f1',
     'materials/7994c9640ce6',
     'secrets/x',
   ])('정해지지 않은 경로는 실패한다: %s', (path) => {
@@ -125,7 +137,9 @@ describe('경로', () => {
 
   test('정해진 컬렉션만 목록을 볼 수 있다', () => {
     expect(isCollection('programs')).toBe(true)
-    expect(isCollection('programs/goyang.bus/facts')).toBe(true)
-    expect(isCollection('programs/goyang.bus/notes')).toBe(false)
+    expect(isCollection('programs/3940000.bus/facts')).toBe(true)
+    expect(isCollection('orgs/3940000/budgets')).toBe(true)
+    expect(isCollection('orgs/3940000/budgets/2026-original/facts')).toBe(true)
+    expect(isCollection('programs/3940000.bus/files')).toBe(false)
   })
 })

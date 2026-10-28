@@ -21,7 +21,12 @@ const config = defineConfig({
       outdir: './src/paraglide',
       strategy: ['url', 'baseLocale'],
     }),
-    nitro({ rollupConfig: { external: [/^@sentry\//] } }),
+    nitro({
+      rollupConfig: { external: [/^@sentry\//] },
+      // 서버에서만 쓰는 Firebase Admin(Firestore·Storage)은 번들에 묶으면 __dirname 등 CommonJS 전제가 깨진다.
+      // 묶지 않고 의존성을 추적해 .output/server/node_modules로 복사한다(App Hosting은 .output만 배포)
+      traceDeps: ['firebase-admin'],
+    }),
     tailwindcss(),
     tanstackStart(),
     viteReact(),

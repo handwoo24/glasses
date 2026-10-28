@@ -31,3 +31,6 @@ ui-debug.log
 
 # 수집 원자료: 원본은 Cloud Storage(gs://glasses-8bd7a.firebasestorage.app/resources)에 둔다
 resources/
+
+# 자료 파일 로컬 사본 (Storage와 같은 경로)
+.storage/
