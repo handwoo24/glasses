@@ -50,6 +50,18 @@ published/{주소}                         사이트에 보이는 리포트 (사
 - 사이트의 리포트 주소는 평가 대상 경로다: `/programs/{기관코드}.{사업}`, `/orgs/{기관코드}/budgets/{연도-구분}`. 옛 주소 `/reports/{slug}`는 새 주소로 넘긴다.
 - 회의록 인용의 사람 이름은 `○○○`로 가린다(`○스마트시티과장 ○○○`, `○ ○○○ 위원`).
 
+## 작업 현황
+
+사이트 `/orgs/{기관코드}/programs`가 기관의 사업 카드와 각 사업의 작업 단계를 보여 준다. 단계는 따로 적지 않고 남은 산출물로 정한다([`stage.ts`](../features/worklist/stage.ts)): 자료가 있으면 수집, 사실·부재 기록이 있으면 분석, 리포트 초안이면 작성, 검토 요청이면 검증, 마지막 검증이 fail이면 고침, pass면 게시 대기, `published/`에 있으면 게시.
+
+작업은 프로젝트 스킬로 한다. 세션 하나에 사업 하나.
+
+| 스킬                                                           | 하는 일                                               |
+| -------------------------------------------------------------- | ----------------------------------------------------- |
+| [`list-programs`](../../.claude/skills/list-programs/SKILL.md) | 기관 세부사업 전수 목록화, 평가 대상 사업 카드 올리기 |
+| [`write-report`](../../.claude/skills/write-report/SKILL.md)   | 사업 하나의 자료·사실·부재 기록·리포트 초안           |
+| [`verify-report`](../../.claude/skills/verify-report/SKILL.md) | 다른 세션이 쓴 리포트를 원장·원문과 대조해 검증 기록  |
+
 ## Storage
 
 ```text
@@ -75,6 +87,13 @@ npm run pipeline -- enqueue verify programs/3940000.autonomous-bus --input progr
 npm run pipeline -- claim verify          # 가장 오래된 작업을 30분 lease로 가져간다 (--subject로 대상 지정)
 npm run pipeline -- done <작업 id> programs/3940000.autonomous-bus/reviews/2026-10-28
 npm run pipeline -- fail <작업 id> <사유>  # 시도가 남았으면 다시 큐로
+```
+
+목록화 도구(`scripts/catalog.ts`)는 예산서 PDF를 텍스트로 바꾸고, 지방재정365 세부사업에 예산서의 부서·정책사업·단위사업을 붙여 사업 후보로 묶는다.
+
+```sh
+npm run catalog -- pdf-text 본예산서.pdf main.txt
+npm run catalog -- candidates --lines 세출현황.json --book main.txt --book 추경.txt --out candidates.json
 ```
 
 자료 파일은 로컬 사본(`.storage/`, Storage와 같은 경로)이 있으면 그것을 읽는다. 운영 Firebase 프로젝트에 쓰려면 `FIRESTORE_EMULATOR_HOST` 대신 아래를 정한다. 둘 다 없으면 도구는 연결하지 않는다.

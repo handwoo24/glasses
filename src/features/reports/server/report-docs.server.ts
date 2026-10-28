@@ -16,7 +16,7 @@ interface Cached<T> {
 }
 
 /** TTL 동안 같은 읽기를 나눠 쓴다. 실패한 읽기는 남기지 않는다 */
-function memo<T>(read: () => Promise<T>): (now?: number) => Promise<T> {
+export function memo<T>(read: () => Promise<T>): (now?: number) => Promise<T> {
   let cache: Cached<T> | undefined
   return (now = Date.now()) => {
     if (!cache || now - cache.at > TTL_MS) {

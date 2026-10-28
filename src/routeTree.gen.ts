@@ -13,6 +13,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as MethodRouteImport } from './routes/method'
 import { Route as ProgramsProgramIdRouteImport } from './routes/programs/$programId'
 import { Route as ReportsSlugRouteImport } from './routes/reports/$slug'
+import { Route as OrgsOrgIdProgramsRouteImport } from './routes/orgs/$orgId/programs'
 import { Route as OrgsOrgIdBudgetsBudgetIdRouteImport } from './routes/orgs/$orgId/budgets/$budgetId'
 
 const IndexRoute = IndexRouteImport.update({
@@ -35,6 +36,11 @@ const ReportsSlugRoute = ReportsSlugRouteImport.update({
   path: '/reports/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
+const OrgsOrgIdProgramsRoute = OrgsOrgIdProgramsRouteImport.update({
+  id: '/orgs/$orgId/programs',
+  path: '/orgs/$orgId/programs',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const OrgsOrgIdBudgetsBudgetIdRoute =
   OrgsOrgIdBudgetsBudgetIdRouteImport.update({
     id: '/orgs/$orgId/budgets/$budgetId',
@@ -47,6 +53,7 @@ export interface FileRoutesByFullPath {
   '/method': typeof MethodRoute
   '/programs/$programId': typeof ProgramsProgramIdRoute
   '/reports/$slug': typeof ReportsSlugRoute
+  '/orgs/$orgId/programs': typeof OrgsOrgIdProgramsRoute
   '/orgs/$orgId/budgets/$budgetId': typeof OrgsOrgIdBudgetsBudgetIdRoute
 }
 export interface FileRoutesByTo {
@@ -54,6 +61,7 @@ export interface FileRoutesByTo {
   '/method': typeof MethodRoute
   '/programs/$programId': typeof ProgramsProgramIdRoute
   '/reports/$slug': typeof ReportsSlugRoute
+  '/orgs/$orgId/programs': typeof OrgsOrgIdProgramsRoute
   '/orgs/$orgId/budgets/$budgetId': typeof OrgsOrgIdBudgetsBudgetIdRoute
 }
 export interface FileRoutesById {
@@ -62,6 +70,7 @@ export interface FileRoutesById {
   '/method': typeof MethodRoute
   '/programs/$programId': typeof ProgramsProgramIdRoute
   '/reports/$slug': typeof ReportsSlugRoute
+  '/orgs/$orgId/programs': typeof OrgsOrgIdProgramsRoute
   '/orgs/$orgId/budgets/$budgetId': typeof OrgsOrgIdBudgetsBudgetIdRoute
 }
 export interface FileRouteTypes {
@@ -71,6 +80,7 @@ export interface FileRouteTypes {
     | '/method'
     | '/programs/$programId'
     | '/reports/$slug'
+    | '/orgs/$orgId/programs'
     | '/orgs/$orgId/budgets/$budgetId'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -78,6 +88,7 @@ export interface FileRouteTypes {
     | '/method'
     | '/programs/$programId'
     | '/reports/$slug'
+    | '/orgs/$orgId/programs'
     | '/orgs/$orgId/budgets/$budgetId'
   id:
     | '__root__'
@@ -85,6 +96,7 @@ export interface FileRouteTypes {
     | '/method'
     | '/programs/$programId'
     | '/reports/$slug'
+    | '/orgs/$orgId/programs'
     | '/orgs/$orgId/budgets/$budgetId'
   fileRoutesById: FileRoutesById
 }
@@ -93,6 +105,7 @@ export interface RootRouteChildren {
   MethodRoute: typeof MethodRoute
   ProgramsProgramIdRoute: typeof ProgramsProgramIdRoute
   ReportsSlugRoute: typeof ReportsSlugRoute
+  OrgsOrgIdProgramsRoute: typeof OrgsOrgIdProgramsRoute
   OrgsOrgIdBudgetsBudgetIdRoute: typeof OrgsOrgIdBudgetsBudgetIdRoute
 }
 
@@ -126,6 +139,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ReportsSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/orgs/$orgId/programs': {
+      id: '/orgs/$orgId/programs'
+      path: '/orgs/$orgId/programs'
+      fullPath: '/orgs/$orgId/programs'
+      preLoaderRoute: typeof OrgsOrgIdProgramsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/orgs/$orgId/budgets/$budgetId': {
       id: '/orgs/$orgId/budgets/$budgetId'
       path: '/orgs/$orgId/budgets/$budgetId'
@@ -141,6 +161,7 @@ const rootRouteChildren: RootRouteChildren = {
   MethodRoute: MethodRoute,
   ProgramsProgramIdRoute: ProgramsProgramIdRoute,
   ReportsSlugRoute: ReportsSlugRoute,
+  OrgsOrgIdProgramsRoute: OrgsOrgIdProgramsRoute,
   OrgsOrgIdBudgetsBudgetIdRoute: OrgsOrgIdBudgetsBudgetIdRoute,
 }
 export const routeTree = rootRouteImport

@@ -81,6 +81,8 @@ export const ProgramSchema = z.strictObject({
   nationalProgram: z.string().regex(PROGRAM_ID).optional(),
   /** 세부사업 코드 (예산 카탈로그 budgetLines/{코드}-{연도}). 사업이 여러 세부사업에 걸치면 모두 적는다 */
   budgetLines: z.array(z.string().min(1)).default([]),
+  /** 담당 부서 (예산서 세출 사업명세서의 부서 이름). 여러 부서가 나눠 맡으면 모두 적는다 */
+  departments: z.array(z.string().min(1)).default([]),
   status: z.enum(['계획', '진행 중', '완료', '중단']),
   priority: z.strictObject({
     score: z.enum(['high', 'medium', 'low']),
