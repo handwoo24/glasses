@@ -27,6 +27,8 @@ export function Cite({ ids = [] }: CiteProps) {
   if (ids.length === 0) return null
   return (
     <sup className="cite">
+      {/* 앞 글자와 출처 번호 사이에서 줄이 바뀌지 않게 (번호만 다음 줄로 떨어지지 않게) */}
+      {'⁠'}
       {ids.map((id, i) => {
         const n = map.get(id)
         if (n === undefined)

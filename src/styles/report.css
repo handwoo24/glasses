@@ -757,11 +757,10 @@ ul.f li::before {
   gap: var(--sp-3);
   font-size: var(--fs-body);
 }
-.list li {
-  display: grid;
-  gap: 2px;
-}
+/* 라벨만 한 줄을 차지하고, 본문 글자·링크·출처 번호는 문장처럼 이어진다 */
 .list .k {
+  display: block;
+  margin-bottom: 2px;
   font-size: var(--fs-micro);
   font-weight: 700;
   color: var(--muted);
