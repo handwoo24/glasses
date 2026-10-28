@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'vitest'
 import { isCollection, resolve } from './paths'
-import { FactSchema, ReviewSchema } from './schemas'
+import { quoteMatches } from './check'
+import { FactSchema, ReviewSchema, unmaskedNames } from './schemas'
 
 const sourced = {
   claim: '2026년 계약 금액은 10억 6,168만 원이다',
@@ -36,6 +37,46 @@ describe('사실 원장 양식', () => {
   test('원문 사실과 계산된 사실을 섞으면 실패한다', () => {
     const mixed = { ...sourced, derivedFrom: ['f1'], formula: 'f1' }
     expect(FactSchema.safeParse(mixed).success).toBe(false)
+  })
+})
+
+describe('이름 가리기', () => {
+  const minutes =
+    '이게 눈높이에 맞아요? ○스마트시티과장 안동수 비쌉니다. ○ 최규진 위원 버스 한 대에 18억?'
+
+  test.each([
+    ['○스마트시티과장 안동수 비쌉니다.', ['안동수']],
+    ['○ 최규진 위원 버스 한 대에', ['최규진']],
+    ['○재난대응담당관 박성완 예.', ['박성완']],
+    ['○스마트시티과장 ○○○ 비쌉니다.', []],
+    ['○ ○○○ 위원 버스 한 대에', []],
+    ['스마트시티과장이 답했다', []],
+  ])('%s', (text, names) => {
+    expect(unmaskedNames(text)).toEqual(names)
+  })
+
+  test('가리지 않은 이름이 인용에 있으면 쓰지 않는다', () => {
+    const fact = (quote: string) =>
+      FactSchema.safeParse({ ...sourced, kind: '발언', quote }).success
+    expect(fact('○스마트시티과장 안동수 비쌉니다.')).toBe(false)
+    expect(fact('○스마트시티과장 ○○○ 비쌉니다.')).toBe(true)
+  })
+
+  test('가린 인용도 원문에서 찾는다', () => {
+    expect(quoteMatches(minutes, '○스마트시티과장 ○○○ 비쌉니다.')).toBe(true)
+    expect(quoteMatches(minutes, '○ ○○○ 위원 버스 한 대에 18억?')).toBe(true)
+    expect(quoteMatches(minutes, '○스마트시티과장 ○○○ 쌉니다.')).toBe(false)
+    expect(quoteMatches(minutes, '(괄호) ○○○')).toBe(false)
+  })
+
+  test('원문의 줄바꿈은 공백으로 보고 맞춘다', () => {
+    const text = '그냥 쉽게…….\n○스마트시티과장 안동수 비쌉니다.'
+    expect(quoteMatches(text, '쉽게……. ○스마트시티과장 ○○○ 비쌉니다.')).toBe(
+      true,
+    )
+    expect(quoteMatches(text, '쉽게…….○스마트시티과장 ○○○ 비쌉니다.')).toBe(
+      false,
+    )
   })
 })
 

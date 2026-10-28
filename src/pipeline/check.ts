@@ -2,9 +2,26 @@
 // 판단이 필요 없는 검사는 검증 에이전트에 맡기지 않고 여기서 한다.
 import { createHash } from 'node:crypto'
 import { readFileSync } from 'node:fs'
-import { FactSchema, MaterialSchema } from './schemas'
+import { FactSchema, MaterialSchema, NAME_MASK } from './schemas'
 import type { Fact } from './schemas'
 import { get, list } from './store'
+
+const squash = (s: string) => s.replace(/\s+/g, ' ')
+
+/**
+ * 인용이 원문에 있는지. 공백·줄바꿈의 차이는 보지 않고(회의록은 발언마다 줄을 바꾼다) 글자는 그대로 맞춘다.
+ * 가린 이름(○○○)은 원문의 아무 이름(한글 2~4자)과 맞춘다.
+ */
+export function quoteMatches(text: string, quote: string): boolean {
+  const body = squash(text)
+  const q = squash(quote).trim()
+  if (!q.includes(NAME_MASK)) return body.includes(q)
+  const pattern = q
+    .split(NAME_MASK)
+    .map((part) => part.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
+    .join('[가-힣]{2,4}')
+  return new RegExp(pattern).test(body)
+}
 
 export interface FactProblem {
   fact: string
@@ -25,7 +42,7 @@ async function checkSourced(
     files.set(material.file, bytes.toString('utf8'))
   }
   const text = files.get(material.file) ?? ''
-  return fact.quote && text.includes(fact.quote)
+  return fact.quote && quoteMatches(text, fact.quote)
     ? []
     : [{ fact: id, problem: `인용이 원문에 없음: ${fact.quote}` }]
 }

@@ -108,10 +108,15 @@ async function run(argv: ReadonlyArray<string>): Promise<void> {
   }
 }
 
+/** 출력이 파이프로 다 나간 뒤에 끝낸다. 바로 exit하면 큰 출력(리포트 본문)이 잘린다 */
+function exit(code: number): void {
+  process.stdout.write('', () => process.exit(code))
+}
+
 run(process.argv.slice(2)).then(
-  () => process.exit(process.exitCode ?? 0),
+  () => exit(Number(process.exitCode ?? 0)),
   (e: unknown) => {
     process.stderr.write(`${e instanceof Error ? e.message : String(e)}\n`)
-    process.exit(1)
+    exit(1)
   },
 )

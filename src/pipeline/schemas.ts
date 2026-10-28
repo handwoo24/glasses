@@ -60,6 +60,20 @@ export const MaterialSchema = z.strictObject({
   programs: z.array(z.string().regex(PROGRAM_ID)).min(1),
 })
 
+/** 사람 이름을 가리는 표기. 원문 검사(check-facts)에서는 아무 이름(한글 2~4자)과 맞춰 본다 */
+export const NAME_MASK = '○○○'
+
+/** 회의록 화자 표기: ○직함 이름 / ○ 이름 위원 */
+const SPEAKER_NAMES: ReadonlyArray<RegExp> = [
+  /○\s?[가-힣·]*(?:과장|국장|실장|시장|담당관|팀장|소장|본부장|원장|센터장)\s([가-힣]{2,4})(?=[\s.,…]|$)/g,
+  /○\s([가-힣]{2,4})\s(?:위원장|위원|의원|부의장|의장)/g,
+]
+
+/** 가리지 않은 화자 이름 */
+export function unmaskedNames(text: string): Array<string> {
+  return SPEAKER_NAMES.flatMap((re) => [...text.matchAll(re)].map((m) => m[1]))
+}
+
 /** 사실 원장 한 줄: 리포트의 숫자·판정은 모두 여기서 출발한다 */
 export const FactSchema = z
   .strictObject({
@@ -88,6 +102,12 @@ export const FactSchema = z
     {
       message:
         '원문 사실(material·locator·quote)과 계산된 사실(derivedFrom·formula) 중 하나만 채운다',
+    },
+  )
+  .refine(
+    (f) => unmaskedNames(`${f.quote ?? ''}\n${f.locator ?? ''}`).length === 0,
+    {
+      message: `인용·위치의 사람 이름은 ${NAME_MASK}로 가린다 (○스마트시티과장 ${NAME_MASK}, ○ ${NAME_MASK} 위원)`,
     },
   )
 
