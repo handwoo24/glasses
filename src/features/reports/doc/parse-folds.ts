@@ -32,7 +32,7 @@ import type {
   TimelineItem,
 } from '../schema'
 import { cited, labelledText, plain } from './inline'
-import { DocError } from './markdown'
+import { DocError } from './errors'
 import { leadItems, tableRows } from './parse-body'
 import { check, expectNodes, namedSections, splitSections } from './sections'
 import type { Section } from './sections'

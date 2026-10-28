@@ -1,14 +1,15 @@
 import { createFileRoute, notFound } from '@tanstack/react-router'
-import { getReportDoc } from '#/content/report-docs'
+import { fetchReportDoc } from '#/content/report-docs.functions'
 import { ReportPage } from '#/features/reports/view/report-page'
 
 export const Route = createFileRoute('/reports/$slug')({
-  loader: ({ params }) => {
-    if (!getReportDoc(params.slug)) throw notFound()
-    return { slug: params.slug }
+  // 문서 파싱은 서버 함수 안에서만 한다. 브라우저는 결과 JSON을 받아 그리기만 한다
+  loader: async ({ params }) => {
+    const doc = await fetchReportDoc({ data: { slug: params.slug } })
+    if (!doc) throw notFound()
+    return doc
   },
-  head: ({ loaderData }) => {
-    const a = loaderData && getReportDoc(loaderData.slug)
+  head: ({ loaderData: a }) => {
     return {
       meta: a
         ? [
@@ -34,9 +35,5 @@ export const Route = createFileRoute('/reports/$slug')({
 })
 
 function ReportRoute() {
-  const { slug } = Route.useLoaderData()
-  // 리포트에는 렌더링된 본문 조각이 있어 로더 데이터로 직렬화하지 않고 모듈에서 꺼낸다
-  const doc = getReportDoc(slug)
-  if (!doc) throw notFound()
-  return <ReportPage doc={doc} />
+  return <ReportPage doc={Route.useLoaderData()} />
 }

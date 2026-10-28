@@ -1,26 +1,88 @@
 /**
- * 리포트 화면 한 장이 받는 데이터. 마크다운 문서(doc/)에서 읽거나,
- * 아직 문서로 옮기지 않은 리포트는 TS 데이터(Report + Assessment)를 이 모양으로 맞춘다.
+ * 리포트 화면 한 장이 받는 데이터. 서버가 마크다운 문서(doc/load.ts)를 읽어 만들고,
+ * 브라우저로는 JSON으로 넘어간다. 자유 본문(안내, 그림 등)은 검사를 마친 마크다운 트리(mdast)로 담고
+ * 화면에서 doc/rich.tsx가 디자인 시스템 마크업으로 그린다.
  */
-import type { AxisId } from './axes'
-import { allSources, classifyChecks, signalsByAxis } from './assessment'
-import type { Assessment, ClassifiedCheck } from './assessment'
+import type { AxisId, AxisStatus, EvidenceLevel } from './axes'
+import type {
+  ClassifiedCheck,
+  Cited,
+  OverviewCell,
+  UnknownItem,
+} from './assessment'
 import type {
   BudgetBasis,
   Contract,
   DisclosureItem,
   Oversight,
-  Report,
   RiskSignal,
   Source,
   TimelineItem,
 } from './schema'
+import type { ListItem, PhrasingContent, RootContent } from 'mdast'
 
-export interface ReportDoc extends Omit<
-  Assessment,
-  'reportSlug' | 'checkMap' | 'newChecks' | 'signalAxis' | 'extraSources'
-> {
+/** 패널·그림 본문 블록 */
+export type Blocks = ReadonlyArray<RootContent>
+/** 문단 안 글자 */
+export type Inline = ReadonlyArray<PhrasingContent>
+
+export interface Panel {
+  title: string
+  body: Blocks
+}
+
+export interface AxisDoc {
+  status: AxisStatus
+  evidence: EvidenceLevel
+  /** 종합 판정 목록의 한 줄 (한다체) */
+  line: string
+  /** 축 카드의 결론 제목 (합니다체) */
+  title: string
+  facts?: ReadonlyArray<Cited>
+  /** 그래프나 표 */
+  figure?: Blocks
+  /** 시민 단위 (축마다 최대 하나) */
+  per?: string
+  /** 시의 설명. “직함(시기): 요약.” 발언자마다 하나 */
+  said?: ReadonlyArray<Cited>
+  note?: Inline
+  missing?: string
+}
+
+export interface ReportDoc {
   slug: string
+  project: string
+  title: string
+  description: string
+  /** 화면 표기(2026. 10. 27.) */
+  asOf: string
+  facts: ReadonlyArray<readonly [label: string, value: string]>
+  lede: Cited
+  typeNote?: string
+  axisIndicators: Partial<Record<AxisId, string>>
+  overview: {
+    cells: ReadonlyArray<OverviewCell>
+    chips?: {
+      label: string
+      cite?: ReadonlyArray<string>
+      items: ReadonlyArray<{ label: string; on?: boolean }>
+    }
+  }
+  side: Panel
+  /** 종합 판정 문장: ① 잘되는 것 ② 가장 큰 문제와 금액 ③ 다음 확인 시점, 4문장 안쪽 */
+  verdict: string
+  nextDates: ReadonlyArray<readonly [when: string, what: string]>
+  status: Panel
+  axes: Record<AxisId, AxisDoc>
+  vendors?: Panel
+  unknowns: ReadonlyArray<UnknownItem>
+  /** 화면 표기(2026. 12.) */
+  nextReview: string
+  /** 정보공개청구 문구 */
+  request: string
+  /** ‘더 알아보는 방법’에 덧붙이는 항목 (**라벨** 내용) */
+  moreActions: ReadonlyArray<ListItem>
+  footNote: string
   /** 축과 답이 정해진 점검 */
   checks: ReadonlyArray<ClassifiedCheck>
   /** 축별 위험 지표 */
@@ -34,29 +96,26 @@ export interface ReportDoc extends Omit<
   timeline: ReadonlyArray<TimelineItem>
 }
 
-/** TS 리포트 데이터와 평가를 화면 데이터로 합친다 */
-export function fromReportAndAssessment(
-  report: Report,
-  assessment: Assessment,
-): ReportDoc {
-  const {
-    reportSlug,
-    checkMap: _checkMap,
-    newChecks: _newChecks,
-    signalAxis: _signalAxis,
-    extraSources: _extraSources,
-    ...rest
-  } = assessment
+/** 홈 카드에 필요한 것만 */
+export type ReportSummary = Pick<
+  ReportDoc,
+  'slug' | 'project' | 'title' | 'verdict'
+> & {
+  axes: Record<AxisId, Pick<AxisDoc, 'status' | 'evidence'>>
+}
+
+export function toSummary(doc: ReportDoc): ReportSummary {
+  const axes = Object.fromEntries(
+    Object.entries(doc.axes).map(([id, a]) => [
+      id,
+      { status: a.status, evidence: a.evidence },
+    ]),
+  ) as ReportSummary['axes']
   return {
-    ...rest,
-    slug: reportSlug,
-    checks: classifyChecks(report, assessment),
-    signals: signalsByAxis(report, assessment),
-    sources: allSources(report, assessment),
-    budgetBasis: report.budgetBasis,
-    contracts: report.contracts,
-    oversight: report.oversight,
-    disclosure: report.disclosure,
-    timeline: report.timeline,
+    slug: doc.slug,
+    project: doc.project,
+    title: doc.title,
+    verdict: doc.verdict,
+    axes,
   }
 }

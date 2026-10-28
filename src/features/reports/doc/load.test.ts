@@ -5,11 +5,12 @@ import { AXIS_IDS } from '../axes'
 import { ReportPage } from '../view/report-page'
 import { loadReportDoc } from './load'
 import md from '#/content/reports/autonomous-bus-dallil-goyang.md?raw'
+import budgetMd from '#/content/reports/budget-2026-3rd-supplementary.md?raw'
 
 /** 문서의 한 곳을 바꾼다. 바꿀 글자가 없으면 테스트가 헛돌지 않게 실패 */
-function edit(from: string, to: string): string {
-  if (!md.includes(from)) throw new Error(`문서에 없는 글자: ${from}`)
-  return md.replace(from, to)
+function edit(from: string, to: string, src: string = md): string {
+  if (!src.includes(from)) throw new Error(`문서에 없는 글자: ${from}`)
+  return src.replace(from, to)
 }
 
 describe('리포트 문서 읽기', () => {
@@ -46,7 +47,7 @@ describe('리포트 문서 읽기', () => {
     expect(doc.sources.map((s) => s.id)).toContain('s36')
   })
 
-  test('코드 블록(청구 문구) 안의 [s9]는 출처로 보지 않는다', () => {
+  test('코드 블록(청구 문구) 안의 [s98]은 출처로 보지 않는다', () => {
     expect(() =>
       loadReportDoc(
         edit(
@@ -170,6 +171,21 @@ describe('양식이 틀린 문서는 읽지 않는다', () => {
       '빈 항목',
     ],
     ['날짜 형식 오류', edit('{date=2026-11-10}', '{date=foo}'), 'date'],
+    ['없는 달', edit('{date=2026-11-10}', '{date=2026-13}'), 'date'],
+    [
+      '막대 값이 숫자가 아님',
+      edit(
+        'value: 397.55, text: "397억 5,500만", hot: true }\n  - { name: 세외수입',
+        'value: 많음, text: "397억 5,500만", hot: true }\n  - { name: 세외수입',
+        budgetMd,
+      ),
+      'hbars 블록',
+    ],
+    [
+      '모르는 코드 블록',
+      edit('```hbars', '```mermaid', budgetMd),
+      '쓸 수 없는 코드 블록: mermaid',
+    ],
     [
       '정하지 않은 속성',
       edit('{date=2026-11-10}', '{date=2026-11-10 onclick=x}'),
@@ -201,5 +217,25 @@ describe('양식이 틀린 문서는 읽지 않는다', () => {
     ['출처 id 중복', edit('| s36 |', '| s1 |'), 's1이 두 번'],
   ] as const)('%s', (_name, src, message) => {
     expect(() => loadReportDoc(src)).toThrow(message)
+  })
+})
+
+describe('브라우저로 보내는 모양', () => {
+  const doc = loadReportDoc(budgetMd)
+
+  test('JSON으로 주고받아도 그대로이고 원문 위치 정보가 없다', () => {
+    const wire = JSON.stringify(doc)
+    expect(JSON.parse(wire)).toEqual(doc)
+    expect(wire).not.toContain('"position"')
+  })
+
+  test('막대 블록 YAML은 검사한 JSON으로 바뀐다 (브라우저는 YAML을 읽지 않는다)', () => {
+    const code = doc.side.body.find((n) => n.type === 'code')
+    expect(code?.type === 'code' && JSON.parse(code.value).rows).toHaveLength(5)
+  })
+
+  test('월 단위 날짜도 큰 날짜로 그린다', () => {
+    const html = renderToStaticMarkup(createElement(ReportPage, { doc }))
+    expect(html).toContain('<p class="big-date">2026. 12.</p>')
   })
 })

@@ -1,22 +1,15 @@
 // 시민이 읽는 본문 구역: 사업 개요, 종합 판정, 축별 근거, 아직 확인하지 못한 것, 더 알아보는 방법.
-import type { ReactNode } from 'react'
 import { AXIS_IDS, AXIS_INFO, EVIDENCE_INFO, STATUS_INFO } from '../axes'
 import type { AxisId } from '../axes'
-import type {
-  Assessment,
-  AxisAssessment,
-  Cited,
-  OverviewCell,
-  UnknownItem,
-} from '../assessment'
+import type { Cited, OverviewCell, UnknownItem } from '../assessment'
 import { fromLabel } from '../labels'
 import { cited, itemParagraphs, plain, requireLead } from './inline'
 import type { Lead } from './inline'
-import { DocError } from './markdown'
-import { labelledItem, renderFigure, renderInline } from './rich'
+import { DocError } from './errors'
 import { expectNodes, namedSections, splitSections } from './sections'
 import type { Section } from './sections'
-import type { List, Paragraph, RootContent, Table } from 'mdast'
+import type { AxisDoc, ReportDoc } from '../report-doc'
+import type { ListItem, List, Paragraph, RootContent, Table } from 'mdast'
 
 const OVERVIEW_LABELS = ['무엇', '얼마', '누가', '언제'] as const
 
@@ -54,7 +47,7 @@ export function leadItems(
   })
 }
 
-export function parseOverview(sec: Section): Assessment['overview'] {
+export function parseOverview(sec: Section): ReportDoc['overview'] {
   const { before, sections } = splitSections(sec.nodes, 3, sec.where)
   const [table] = expectNodes(before, ['table'], sec.where)
   const cells = tableRows(table, ['구분', '요약', '설명'], sec.where).map(
@@ -110,8 +103,8 @@ function axisHeading(
   where: string,
 ): {
   id: AxisId
-  status: AxisAssessment['status']
-  evidence: AxisAssessment['evidence']
+  status: AxisDoc['status']
+  evidence: AxisDoc['evidence']
 } {
   const parts = title.split(' · ')
   const [name, statusLabel, evLabel] = parts
@@ -121,13 +114,13 @@ function axisHeading(
   const status = fromLabel(
     Object.fromEntries(
       Object.entries(STATUS_INFO).map(([k, v]) => [k, v.label]),
-    ) as Record<AxisAssessment['status'], string>,
+    ) as Record<AxisDoc['status'], string>,
     statusLabel,
   )
   const evidence = fromLabel(
     Object.fromEntries(
       Object.entries(EVIDENCE_INFO).map(([k, v]) => [k, `근거 ${v.label}`]),
-    ) as Record<AxisAssessment['evidence'], string>,
+    ) as Record<AxisDoc['evidence'], string>,
     evLabel,
   )
   if (parts.length !== 3 || !id || !status || !evidence)
@@ -146,7 +139,7 @@ function citedList(list: List, where: string): Array<Cited> {
   })
 }
 
-type AxisBody = Omit<AxisAssessment, 'status' | 'evidence'>
+type AxisBody = Omit<AxisDoc, 'status' | 'evidence'>
 
 /** 축 블록 하나를 읽는다. 같은 블록이 두 번 나오면 앞의 것이 사라지지 않게 실패 */
 function axisBlock(
@@ -165,14 +158,14 @@ function axisBlock(
   if (n.type === 'containerDirective' && n.name === 'figure') {
     if (Object.keys(n.attributes ?? {}).length)
       throw new DocError(where, '::::figure에는 속성을 쓰지 않는다')
-    return ['figure', <>{renderFigure(n.children, `${where} > 그림`)}</>]
+    return ['figure', n.children]
   }
   if (n.type !== 'paragraph')
     throw new DocError(where, `축 안에 쓸 수 없는 블록: ${n.type}`)
   const l = requireLead(n, where)
   if (l.label === '시의 설명' && l.rest.length === 0) return ['시의 설명', true]
   if (l.label === '시민 단위') return ['per', plain(l.rest, where)]
-  if (l.label === '참고') return ['note', <>{renderInline(l.rest, where)}</>]
+  if (l.label === '참고') return ['note', l.rest]
   if (l.label === '확인 못 한 것') return ['missing', plain(l.rest, where)]
   throw new DocError(where, `알 수 없는 라벨 **${l.label}**`)
 }
@@ -209,7 +202,7 @@ function parseAxis(nodes: ReadonlyArray<RootContent>, where: string): AxisBody {
   return out as unknown as AxisBody
 }
 
-export function parseAxes(sec: Section): Record<AxisId, AxisAssessment> {
+export function parseAxes(sec: Section): Record<AxisId, AxisDoc> {
   const { before, sections } = splitSections(sec.nodes, 3, sec.where)
   expectNodes(before, [], sec.where)
   const axes = sections.map((s) => {
@@ -222,7 +215,7 @@ export function parseAxes(sec: Section): Record<AxisId, AxisAssessment> {
       sec.where,
       `7개 축이 ①~⑦ 순서로 하나씩 있어야 함 (지금: ${order})`,
     )
-  return Object.fromEntries(axes) as Record<AxisId, AxisAssessment>
+  return Object.fromEntries(axes) as Record<AxisId, AxisDoc>
 }
 
 export function parseUnknowns(sec: Section): Array<UnknownItem> {
@@ -235,7 +228,7 @@ export function parseUnknowns(sec: Section): Array<UnknownItem> {
 
 export function parseActions(sec: Section): {
   request: string
-  moreActions?: ReactNode
+  moreActions: Array<ListItem>
 } {
   const { before, sections } = splitSections(sec.nodes, 3, sec.where)
   expectNodes(before, [], sec.where)
@@ -248,12 +241,7 @@ export function parseActions(sec: Section): {
   if (!req) throw new DocError(sec.where, '### 정보공개청구 문구가 필요함')
   const [code] = expectNodes(req.nodes, ['code'], req.where)
   const more = named.get('그 밖의 방법')
-  if (!more) return { request: code.value }
+  if (!more) return { request: code.value, moreActions: [] }
   const [list] = expectNodes(more.nodes, ['list'], more.where)
-  return {
-    request: code.value,
-    moreActions: (
-      <>{list.children.map((it, i) => labelledItem(it, more.where, i))}</>
-    ),
-  }
+  return { request: code.value, moreActions: list.children }
 }

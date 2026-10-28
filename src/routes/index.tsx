@@ -1,5 +1,5 @@
 import { Link, createFileRoute } from '@tanstack/react-router'
-import { reportDocs } from '#/content/report-docs'
+import { listReportSummaries } from '#/content/report-docs.functions'
 import {
   AXES_VERSION,
   AXIS_IDS,
@@ -9,9 +9,13 @@ import {
 import { STATUS_TONE, summarize } from '#/features/reports/assessment'
 import { OverallEvidenceMark, StatusBadge } from '#/features/reports/view/parts'
 
-export const Route = createFileRoute('/')({ component: Home })
+export const Route = createFileRoute('/')({
+  loader: () => listReportSummaries(),
+  component: Home,
+})
 
 function Home() {
+  const reportDocs = Route.useLoaderData()
   return (
     <div className="page">
       <div className="index">

@@ -1,7 +1,7 @@
 // ‘자세히 보기’: 판정의 재료를 접어 둔다. 내용은 리포트 데이터(Report)에서 온다.
 import { AXES_VERSION, AXIS_IDS, AXIS_INFO } from '../axes'
 import { answerCounts } from '../assessment'
-import type { Assessment, ClassifiedCheck } from '../assessment'
+import type { ClassifiedCheck } from '../assessment'
 import { Cite } from '../components/cite'
 import { formatDate, formatWon } from '../format'
 import {
@@ -25,7 +25,7 @@ import { AnswerBadge, Fold, StatusBadge } from './parts'
 interface ChecksFoldProps {
   checks: ReadonlyArray<ClassifiedCheck>
   signals: Record<string, ReadonlyArray<RiskSignal>>
-  axes: Assessment['axes']
+  axes: ReportDoc['axes']
 }
 
 export function ChecksFold({ checks, signals, axes }: ChecksFoldProps) {
@@ -98,7 +98,7 @@ export function ChecksFold({ checks, signals, axes }: ChecksFoldProps) {
 
 interface MethodFoldProps {
   typeNote?: string
-  indicators: Assessment['axisIndicators']
+  indicators: ReportDoc['axisIndicators']
 }
 
 export function MethodFold({ typeNote, indicators }: MethodFoldProps) {

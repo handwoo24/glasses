@@ -1,7 +1,7 @@
 // 제목(##, ###, ####)으로 문서를 구역으로 나눈다.
 import type { ZodType } from 'zod'
 import { rawText } from './inline'
-import { DocError } from './markdown'
+import { DocError } from './errors'
 import type { Heading, RootContent } from 'mdast'
 
 export interface Section {

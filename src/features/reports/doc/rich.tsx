@@ -2,12 +2,11 @@
 // 정해진 블록만 그리고, 모르는 블록·HTML·허용되지 않은 링크는 오류로 막는다.
 import { Fragment } from 'react'
 import type { ReactNode } from 'react'
-import { parse as parseYaml } from 'yaml'
 import { z } from 'zod'
 import { Cite } from '../components/cite'
 import { formatDate } from '../format'
 import { LinkUrlSchema } from '../schema'
-import { DownArrow } from '../view/parts'
+import { DownArrow, HBars } from '../view/parts'
 import {
   CITE_RUN,
   citeIds,
@@ -17,7 +16,7 @@ import {
   requireLead,
   trimEnd,
 } from './inline'
-import { DocError } from './markdown'
+import { DocError } from './errors'
 import type { ContainerDirective } from 'mdast-util-directive'
 import type { List, ListItem, PhrasingContent, RootContent, Table } from 'mdast'
 
@@ -179,6 +178,38 @@ function dataTable(
   )
 }
 
+/** 머리줄 아래 칸이 모두 td인 작은 표. 오른쪽 정렬(---:) 칸은 숫자 칸 */
+function miniTable(table: Table, where: string, key: number): ReactNode {
+  const [head, ...rows] = table.children
+  return (
+    <table key={key} className="mini-table">
+      <thead>
+        <tr>
+          {head.children.map((c, i) => (
+            <th key={i} scope="col">
+              {renderInline(c.children, where)}
+            </th>
+          ))}
+        </tr>
+      </thead>
+      <tbody>
+        {rows.map((r, i) => (
+          <tr key={i}>
+            {r.children.map((c, j) => (
+              <td
+                key={j}
+                className={table.align?.[j] === 'right' ? 'n' : undefined}
+              >
+                {renderInline(c.children, where)}
+              </td>
+            ))}
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  )
+}
+
 function panelDirective(d: ContainerDirective, where: string): ReactNode {
   const w = `${where} > :::${d.name}`
   const { label, attrs, body } = directive(d, w)
@@ -214,9 +245,15 @@ function panelDirective(d: ContainerDirective, where: string): ReactNode {
         </dl>
       )
     case 'next-date': {
-      const date = z.iso.date().safeParse(attrs.date)
+      const date = z
+        .string()
+        .regex(/^\d{4}-(0[1-9]|1[0-2])(-(0[1-9]|[12]\d|3[01]))?$/)
+        .safeParse(attrs.date)
       if (!label || !date.success)
-        throw new DocError(w, ':::next-date[라벨]{date=YYYY-MM-DD} 형식')
+        throw new DocError(
+          w,
+          ':::next-date[라벨]{date=YYYY-MM-DD 또는 YYYY-MM} 형식',
+        )
       return (
         <>
           <p className="label">{label}</p>
@@ -239,7 +276,17 @@ export function renderPanel(nodes: Blocks, where: string): ReactNode {
   return nodes.map((n, i) => {
     switch (n.type) {
       case 'paragraph':
-        return <p key={i}>{renderInline(n.children, where)}</p>
+        return (
+          <p key={i} className="cap">
+            {renderInline(n.children, where)}
+          </p>
+        )
+      case 'heading':
+        return (
+          <h4 key={i} className="sub-h">
+            {renderInline(n.children, where)}
+          </h4>
+        )
       case 'list':
         return (
           <ul key={i} className="list">
@@ -247,7 +294,9 @@ export function renderPanel(nodes: Blocks, where: string): ReactNode {
           </ul>
         )
       case 'table':
-        return dataTable(n, where, undefined, i)
+        return miniTable(n, where, i)
+      case 'code':
+        return chart(n.lang, n.value, where, i)
       case 'containerDirective':
         return <Fragment key={i}>{panelDirective(n, where)}</Fragment>
       default:
@@ -256,7 +305,7 @@ export function renderPanel(nodes: Blocks, where: string): ReactNode {
   })
 }
 
-const BarsSchema = z.object({
+export const BarsSchema = z.object({
   label: z.string().min(1),
   bars: z
     .array(
@@ -270,11 +319,60 @@ const BarsSchema = z.object({
     .min(2),
 })
 
-function bars(yaml: string, where: string, key: number): ReactNode {
-  const parsed = BarsSchema.safeParse(parseYaml(yaml))
+export const HBarsSchema = z.object({
+  label: z.string().min(1).optional(),
+  /** 막대 100%에 해당하는 값. 비율이면 100 */
+  max: z.number().positive().optional(),
+  rows: z
+    .array(
+      z.object({
+        name: z.string().min(1),
+        value: z.number().nonnegative(),
+        text: z.string().min(1),
+        hot: z.boolean().optional(),
+      }),
+    )
+    .min(1),
+})
+
+/** 막대 블록 이름 → 데이터 양식. 문서에는 YAML로 쓰고, 불러올 때 JSON으로 바꿔 둔다(prepare.ts) */
+export const CHART_SCHEMAS = { bars: BarsSchema, hbars: HBarsSchema } as const
+
+function chartData<T>(schema: z.ZodType<T>, json: string, where: string): T {
+  let value: unknown
+  try {
+    value = JSON.parse(json)
+  } catch {
+    throw new DocError(
+      where,
+      '막대 블록을 읽을 수 없음 (불러오기 단계를 거치지 않음)',
+    )
+  }
+  const parsed = schema.safeParse(value)
   if (!parsed.success)
-    throw new DocError(where, `bars 블록: ${parsed.error.message}`)
-  const { label, bars: rows } = parsed.data
+    throw new DocError(where, `막대 블록: ${parsed.error.message}`)
+  return parsed.data
+}
+
+/** ```bars(세로 막대) / ```hbars(가로 막대) */
+function chart(
+  lang: string | null | undefined,
+  json: string,
+  where: string,
+  key: number,
+): ReactNode {
+  if (lang === 'bars') return bars(chartData(BarsSchema, json, where), key)
+  if (lang === 'hbars') {
+    const { rows, label, max } = chartData(HBarsSchema, json, where)
+    return <HBars key={key} rows={rows} label={label} max={max} />
+  }
+  throw new DocError(where, `쓸 수 없는 코드 블록: ${lang ?? '(이름 없음)'}`)
+}
+
+function bars(
+  { label, bars: rows }: z.infer<typeof BarsSchema>,
+  key: number,
+): ReactNode {
   return (
     <div key={key}>
       <div className="bars" role="img" aria-label={label}>
@@ -429,9 +527,7 @@ export function renderFigure(nodes: Blocks, where: string): ReactNode {
         )
       }
       case 'code':
-        if (n.lang !== 'bars')
-          throw new DocError(where, `그림에 쓸 수 없는 코드 블록: ${n.lang}`)
-        return bars(n.value, where, i)
+        return chart(n.lang, n.value, where, i)
       case 'containerDirective':
         return <Fragment key={i}>{figureDirective(n, where)}</Fragment>
       default:

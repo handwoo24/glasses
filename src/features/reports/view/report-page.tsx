@@ -5,10 +5,15 @@ import type { ReactNode } from 'react'
 import { AXES_VERSION, AXIS_IDS, AXIS_INFO, STATUS_INFO } from '../axes'
 import type { AxisId } from '../axes'
 import { STATUS_TONE, overallReason, summarize } from '../assessment'
-import type { AxisAssessment } from '../assessment'
 import { Cite, CiteProvider } from '../components/cite'
 import { formatDate } from '../format'
-import type { ReportDoc } from '../report-doc'
+import {
+  labelledItem,
+  renderFigure,
+  renderInline,
+  renderPanel,
+} from '../doc/rich'
+import type { AxisDoc, ReportDoc } from '../report-doc'
 import type { Source } from '../schema'
 import {
   BudgetBasisFold,
@@ -45,11 +50,11 @@ export function ReportPage({ doc: K }: { doc: ReportDoc }) {
             <Overview overview={K.overview} />
           </Panel>
           <Panel id="use" title={K.side.title}>
-            {K.side.body}
+            {renderPanel(K.side.body, K.side.title)}
           </Panel>
           <VerdictBlock doc={K} summary={summary} />
           <Panel id="out" title={K.status.title}>
-            {K.status.body}
+            {renderPanel(K.status.body, K.status.title)}
           </Panel>
           <section className="panel axes-block" aria-labelledby="t-axes">
             <div className="band">
@@ -63,7 +68,7 @@ export function ReportPage({ doc: K }: { doc: ReportDoc }) {
           </section>
           {K.vendors && (
             <Panel id="ven" title={K.vendors.title}>
-              {K.vendors.body}
+              {renderPanel(K.vendors.body, K.vendors.title)}
             </Panel>
           )}
           <Panel id="unk" title="아직 확인하지 못한 것">
@@ -92,7 +97,9 @@ export function ReportPage({ doc: K }: { doc: ReportDoc }) {
                 </span>
                 <RequestBox text={K.request} />
               </li>
-              {K.moreActions}
+              {K.moreActions.map((it, i) =>
+                labelledItem(it, '그 밖의 방법', i),
+              )}
               <li>
                 <span className="k">질의</span>
                 <span>
@@ -249,7 +256,7 @@ function VerdictBlock({
 interface AxisPointProps {
   id: AxisId
   index: number
-  axis: AxisAssessment
+  axis: AxisDoc
 }
 
 function AxisPoint({ id, index, axis: x }: AxisPointProps) {
@@ -268,7 +275,7 @@ function AxisPoint({ id, index, axis: x }: AxisPointProps) {
         ))
       ),
     ])
-  if (x.note) notes.push(['참고', x.note])
+  if (x.note) notes.push(['참고', renderInline(x.note, '참고')])
   if (x.missing) notes.push(['확인 못 한 것', x.missing])
 
   return (
@@ -293,7 +300,7 @@ function AxisPoint({ id, index, axis: x }: AxisPointProps) {
       <h3>{x.title}</h3>
       <div className="body">
         {x.facts && <FactList facts={x.facts} />}
-        {x.figure}
+        {x.figure && renderFigure(x.figure, info.label)}
         {x.per && <p className="per">{x.per}</p>}
         {notes.length > 0 && (
           <dl className="notes">

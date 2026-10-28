@@ -1,7 +1,7 @@
 import { createElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, test } from 'vitest'
-import { getReportDoc, reportDocs } from './report-docs'
+import { getReportDoc, reportDocs } from './report-docs.server'
 import { AXIS_IDS } from '#/features/reports/axes'
 import type { ReportDoc } from '#/features/reports/report-doc'
 import { ReportPage } from '#/features/reports/view/report-page'

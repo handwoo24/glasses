@@ -1,6 +1,6 @@
 // 문단 안의 글자를 읽는 도구: 출처 [s1], 첫머리 라벨(**라벨** / :req[라벨]).
 import type { Cited } from '../assessment'
-import { DocError } from './markdown'
+import { DocError } from './errors'
 import type { ListItem, Paragraph, PhrasingContent } from 'mdast'
 
 /** 문장 끝 출처 묶음 [s1][s2] (앞 공백 포함) */

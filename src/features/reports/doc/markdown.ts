@@ -4,6 +4,7 @@ import remarkGfm from 'remark-gfm'
 import remarkParse from 'remark-parse'
 import { unified } from 'unified'
 import { parse as parseYaml } from 'yaml'
+import { DocError } from './errors'
 import type { Parent, Root, RootContent } from 'mdast'
 
 /** 본문에서 쓰는 글자 지시자(:이름[글자]) */
@@ -18,13 +19,6 @@ export const TEXT_DIRECTIVES = [
 ] as const
 
 const FRONT = /^---\r?\n([\s\S]*?)\r?\n---\r?\n/
-
-export class DocError extends Error {
-  constructor(where: string, message: string) {
-    super(`[${where}] ${message}`)
-    this.name = 'DocError'
-  }
-}
 
 export function parseMarkdown(src: string): { front: unknown; root: Root } {
   const m = FRONT.exec(src)

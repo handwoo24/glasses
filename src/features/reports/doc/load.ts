@@ -5,9 +5,10 @@
 import { z } from 'zod'
 import { AXIS_IDS } from '../axes'
 import { formatDate } from '../format'
-import type { ReportDoc } from '../report-doc'
+import type { Panel, ReportDoc } from '../report-doc'
 import { cited, plain } from './inline'
-import { DocError, parseMarkdown } from './markdown'
+import { DocError } from './errors'
+import { parseMarkdown } from './markdown'
 import {
   parseActions,
   parseAxes,
@@ -24,7 +25,8 @@ import {
   parseSources,
   parseTimeline,
 } from './parse-folds'
-import { renderPanel } from './rich'
+import { prepare, prepareAll } from './prepare'
+import { labelledItem, renderFigure, renderInline, renderPanel } from './rich'
 import { check, expectNodes, splitSections } from './sections'
 import type { Section } from './sections'
 
@@ -109,11 +111,47 @@ function checkCites(body: string, sourceIds: ReadonlyArray<string>): void {
     throw new DocError('출처', `출처 표에 없는 id: ${unknown.join(', ')}`)
 }
 
-function panel(s: Section) {
-  return { title: s.title, body: renderPanel(s.nodes, s.where) }
+function panel(s: Section): Panel {
+  return { title: s.title, body: prepareAll(s.nodes, s.where) }
+}
+
+/** 본문 조각(안내, 그림 등)을 한 번 그려 본다. 정하지 않은 블록·링크가 있으면 여기서 실패한다 */
+function checkRich(doc: ReportDoc): void {
+  for (const p of [doc.side, doc.status, doc.vendors])
+    if (p) renderPanel(p.body, p.title)
+  for (const id of AXIS_IDS) {
+    const { figure, note } = doc.axes[id]
+    if (figure) renderFigure(figure, `축별 근거 > ${id} > 그림`)
+    if (note) renderInline(note, `축별 근거 > ${id} > 참고`)
+  }
+  doc.moreActions.forEach((it, i) => labelledItem(it, '그 밖의 방법', i))
+}
+
+/** 축 그림·참고를 브라우저로 보낼 모양으로 */
+function prepareAxes(axes: ReportDoc['axes']): ReportDoc['axes'] {
+  return Object.fromEntries(
+    AXIS_IDS.map((id) => {
+      const a = axes[id]
+      const where = `축별 근거 > ${id}`
+      return [
+        id,
+        {
+          ...a,
+          figure: a.figure && prepareAll(a.figure, `${where} > 그림`),
+          note: a.note && prepareAll(a.note, `${where} > 참고`),
+        },
+      ]
+    }),
+  ) as ReportDoc['axes']
 }
 
 export function loadReportDoc(src: string): ReportDoc {
+  const doc = readReportDoc(src)
+  checkRich(doc)
+  return doc
+}
+
+function readReportDoc(src: string): ReportDoc {
   const { front, root } = parseMarkdown(src)
   const f = check(FrontSchema, front, '머리말')
   const h1 = root.children.at(0)
@@ -135,6 +173,11 @@ export function loadReportDoc(src: string): ReportDoc {
     const sec = s.get(k)
     return sec && fn(sec)
   }
+  const { request, moreActions } = parseActions(get('actions'))
+  const actions = {
+    request,
+    moreActions: moreActions.map((it) => prepare(it, '그 밖의 방법')),
+  }
   return {
     slug: f.slug,
     project: f.project,
@@ -149,11 +192,11 @@ export function loadReportDoc(src: string): ReportDoc {
     side: panel(get('side')),
     ...parseVerdict(get('verdict')),
     status: panel(get('status')),
-    axes: parseAxes(get('axes')),
+    axes: prepareAxes(parseAxes(get('axes'))),
     vendors: opt('vendors', panel),
     unknowns: parseUnknowns(get('unknowns')),
     nextReview: formatDate(f.nextReview),
-    ...parseActions(get('actions')),
+    ...actions,
     footNote: f.footNote,
     ...parseChecks(get('checks')),
     sources,
