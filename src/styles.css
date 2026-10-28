@@ -2,4 +2,5 @@
 @import './styles/tokens.css';
 @import './styles/report.css';
 @import './styles/page.css';
+@import './styles/directory.css';
 @import './styles/site.css';
