@@ -72,10 +72,12 @@ function Home() {
                         slug={r.slug}
                         className="day-item"
                       >
-                        <AxisSummary axes={r.axes} only="bar" />
                         <span className="txt">
                           <b>{what}</b>
-                          <span>{r.title}</span>
+                          <span className="sub">
+                            <span>{r.title}</span>
+                            <AxisSummary axes={r.axes} mode="count" />
+                          </span>
                         </span>
                         <StatusBadge status={summarize(r).overall} overall />
                       </ReportLink>

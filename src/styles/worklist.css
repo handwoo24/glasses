@@ -266,9 +266,9 @@
 .wl-row {
   display: grid;
   grid-template-columns:
-    56px minmax(0, 2.4fr) minmax(0, 0.9fr) minmax(0, 1fr)
+    minmax(0, 2.6fr) minmax(0, 0.8fr) minmax(0, 1fr)
     minmax(0, 1.3fr);
-  gap: 6px 20px;
+  gap: 6px 24px;
 }
 .wl-head {
   padding-bottom: var(--sp-2);
@@ -310,6 +310,9 @@ a.wl-row:focus-visible {
   letter-spacing: -0.02em;
   line-height: 1.4;
 }
+.wl-name .wl-axes {
+  padding-block: 4px 2px;
+}
 .wl-name .why {
   font-size: var(--fs-small);
   color: var(--ink-soft);
@@ -338,6 +341,11 @@ a.wl-row:focus-visible {
   display: grid;
   gap: 2px;
   justify-items: start;
+}
+.wl-stagecell .line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 .wl-stagecell .sub {
   font-size: 12.5px;
@@ -377,12 +385,6 @@ a.wl-row:focus-visible {
 .wl-next b {
   color: var(--blue);
 }
-.wl-bar .dash {
-  fill: none;
-  stroke: var(--muted);
-  stroke-width: 1.2;
-  stroke-dasharray: 3 3;
-}
 .wl-bar .on {
   fill: var(--blue);
 }
@@ -400,21 +402,12 @@ a.wl-row:focus-visible {
     display: none;
   }
   .wl-row {
-    grid-template-columns: 44px minmax(0, 1fr);
-    gap: 6px 14px;
-  }
-  .wl-row > svg {
-    width: 44px;
-    height: 44px;
-    grid-row: span 2;
-  }
-  .wl-row > .axis-sum {
-    grid-row: span 2;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 6px;
   }
   .wl-money,
   .wl-stagecell,
   .wl-next {
-    grid-column: 2;
     justify-items: start;
     text-align: left;
   }

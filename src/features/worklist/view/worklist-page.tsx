@@ -285,8 +285,7 @@ function ItemList({ rows }: { rows: ReadonlyArray<WorkItem> }) {
   return (
     <>
       <div className="wl-head" aria-hidden="true">
-        <span>진행</span>
-        <span>사업 · 고른 이유</span>
+        <span>사업</span>
         <span className="r">예산 · 집행</span>
         <span>단계</span>
         <span>판정 · 다음 일</span>
@@ -300,10 +299,10 @@ function ItemList({ rows }: { rows: ReadonlyArray<WorkItem> }) {
       </ol>
       <p className="wl-foot">
         <span>
-          진행 막대: 수집 → 분석 → 작성 → 검증 → 게시. 점선은 아직 시작하지 않은
-          사업, 게시한 사업은 7개 축 요약 막대로 바뀝니다. 집행률은 지방재정365
-          조회일 기준이라 연말 전에는 낮을 수 있고, 낮다고 문제라는 뜻은
-          아닙니다.
+          단계 옆 진행 막대: 수집 → 분석 → 작성 → 검증 → 게시. 점선 칩은 아직
+          시작하지 않은 사업이고, 게시한 사업은 사업 이름 아래에 7개 축 요약이
+          붙습니다. 집행률은 지방재정365 조회일 기준이라 연말 전에는 낮을 수
+          있고, 낮다고 문제라는 뜻은 아닙니다.
         </span>
         {rows.length > limit && (
           <button type="button" onClick={() => setLimit((n) => n + PAGE)}>
@@ -320,11 +319,6 @@ function Row({ item: i }: { item: WorkItem }) {
   const low = rate !== null && (i.budget?.amount ?? 0) >= BIG && rate < LOW_RATE
   const body = (
     <>
-      {i.summary ? (
-        <AxisSummary axes={i.summary.axes} only="bar" />
-      ) : (
-        <StageBar stage={i.stage} />
-      )}
       <div className="wl-name">
         <p className="wl-k">
           {[
@@ -336,12 +330,13 @@ function Row({ item: i }: { item: WorkItem }) {
             .join(' · ')}
         </p>
         <h3>{i.summary?.title ?? i.name}</h3>
-        {i.summary && (
+        {i.summary ? (
           <p className="wl-axes">
-            <AxisSummary axes={i.summary.axes} only="text" />
+            <AxisSummary axes={i.summary.axes} mode="list" />
           </p>
+        ) : (
+          <p className="why">{i.priorityWhy}</p>
         )}
-        <p className="why">{i.summary?.verdict ?? i.priorityWhy}</p>
         <p className="path">programs/{i.id}</p>
       </div>
       <span className="wl-money">
@@ -357,8 +352,11 @@ function Row({ item: i }: { item: WorkItem }) {
         )}
       </span>
       <span className="wl-stagecell">
-        <span className="wl-stage" data-tone={stageTone(i.stage)}>
-          {i.stage}
+        <span className="line">
+          <span className="wl-stage" data-tone={stageTone(i.stage)}>
+            {i.stage}
+          </span>
+          <StageBar stage={i.stage} />
         </span>
         <span className="sub">
           {i.latestReport
@@ -398,43 +396,37 @@ function Row({ item: i }: { item: WorkItem }) {
   )
 }
 
-/** 진행 막대. 대기는 점선 테두리 하나, 고침은 마지막 칸을 황토로 */
+/** 진행 막대. 단계 칩 옆에 둔다. 대기는 칩만, 고침은 마지막 칸을 황토로 */
 function StageBar({ stage }: { stage: WorkStage }) {
+  if (stage === '대기') return null
   const filled = BAR_STEPS[stage]
-  const label =
-    stage === '대기' ? '진행: 대기, 아직 시작하지 않음' : `진행: ${stage}`
   return (
     <svg
       className="wl-bar"
-      width="56"
-      height="56"
-      viewBox="0 0 56 56"
-      role="img"
-      aria-label={label}
+      width="52"
+      height="8"
+      viewBox="0 0 52 8"
+      aria-hidden="true"
     >
-      {stage === '대기' ? (
-        <rect x="2" y="24" width="52" height="8" rx="4" className="dash" />
-      ) : (
-        [0, 1, 2, 3, 4, 5].map((k) => (
-          <rect
-            key={k}
-            x={2 + k * 9}
-            y="24"
-            width="7"
-            height="8"
-            rx="2"
-            className={
-              k < filled
-                ? stage === '고침' && k === filled - 1
-                  ? 'fix'
-                  : stageTone(stage) === 'done'
-                    ? 'done'
-                    : 'on'
-                : 'off'
-            }
-          />
-        ))
-      )}
+      {[0, 1, 2, 3, 4, 5].map((k) => (
+        <rect
+          key={k}
+          x={k * 9}
+          y="0"
+          width="7"
+          height="8"
+          rx="2"
+          className={
+            k < filled
+              ? stage === '고침' && k === filled - 1
+                ? 'fix'
+                : stageTone(stage) === 'done'
+                  ? 'done'
+                  : 'on'
+              : 'off'
+          }
+        />
+      ))}
     </svg>
   )
 }
