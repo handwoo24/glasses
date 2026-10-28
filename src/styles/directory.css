@@ -1,0 +1,394 @@
+/* 기관·부처·사업 목록·재정 문서 판 사슬(디자인 시스템 v2). 캔버스 시안 ‘기관 · 부처’, ‘홈 · 목록’,
+   ‘재정 문서’를 옮긴 스타일이다. 페이지는 데이터(기관 레지스트리, 게시 요약)가 생기면 만든다.
+   머리(이름·칩·사실 줄)는 page.css의 .rp-hero, 다음 판단 시점은 .rp-next, 7조각 링은 .axis-ring을 쓴다. 토큰만 쓴다 */
+
+.dir {
+  max-width: 1160px;
+  margin: 0 auto;
+  display: grid;
+  gap: var(--sp-8);
+}
+.dir-top {
+  display: grid;
+  gap: var(--sp-4);
+}
+
+/* 평가 현황: ‘3건 평가함 / 세부사업 M개 중’과 판정 분포. 성적이 아니라는 안내를 꼭 붙인다 */
+.cover {
+  display: grid;
+  gap: var(--sp-3);
+  padding: var(--sp-6);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+}
+.cover .count {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--sp-1) var(--sp-4);
+}
+.cover .count b {
+  font-size: var(--fs-d2);
+  font-weight: 900;
+  line-height: 1;
+  letter-spacing: -0.03em;
+}
+.cover .count span {
+  font-size: var(--fs-small);
+  color: var(--ink-soft);
+}
+.cover .count .of {
+  color: var(--muted);
+}
+/* 판정 분포 막대: 조각은 data의 건수만큼 flex-grow */
+.dist {
+  display: flex;
+  height: 14px;
+  border-radius: var(--r-pill);
+  overflow: hidden;
+  background: var(--ground);
+}
+.dist span {
+  min-width: 4px;
+}
+.dist .bad {
+  background: var(--bad-mark);
+}
+.dist .warn {
+  background: var(--warn-mark);
+}
+.dist .ok {
+  background: var(--ok-mark);
+}
+.dist .none {
+  background: var(--none-mark);
+}
+.dist-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2) var(--sp-4);
+  font-size: var(--fs-small);
+}
+.cover .note {
+  padding: var(--sp-3) var(--sp-4);
+  border-radius: var(--r-md);
+  background: var(--ground);
+  font-size: var(--fs-small);
+  color: var(--ink-soft);
+}
+
+/* 평가한 사업 줄(기관 페이지)과 사업 목록 줄: 링 · 이름과 판정 이유 · 판정과 다음 판단 시점 */
+.prog-rows {
+  display: grid;
+}
+.prog-row {
+  display: grid;
+  grid-template-columns: 52px minmax(0, 1fr);
+  gap: var(--sp-1) var(--sp-3);
+  align-items: center;
+  padding: var(--sp-4) 0;
+  border-bottom: 1px solid var(--line);
+  color: var(--ink);
+  text-decoration: none;
+}
+.prog-row .axis-ring {
+  grid-row: span 3;
+}
+.prog-row .kicker {
+  font-size: var(--fs-micro);
+  font-weight: 700;
+  color: var(--muted);
+}
+.prog-row h3 {
+  font-size: var(--fs-lead);
+  line-height: 1.4;
+  letter-spacing: -0.02em;
+}
+.prog-row:hover h3 {
+  color: var(--blue);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.prog-row .why {
+  font-size: var(--fs-small);
+  color: var(--ink-soft);
+}
+.prog-row .meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px var(--sp-3);
+  font-size: var(--fs-small);
+  color: var(--ink-soft);
+}
+.prog-row .meta b {
+  color: var(--blue);
+}
+.prog-row .as-of {
+  font-size: var(--fs-micro);
+  color: var(--muted);
+}
+/* 목록 표 머리: 넓은 화면에서만 */
+.prog-head {
+  display: none;
+}
+
+/* 재정 문서 판 사슬: 본예산 → 추경 → 결산. 지금 판은 판정색 면, 아직 오지 않은 판은 점선 */
+.budget-chain {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(124px, 1fr);
+  gap: 0;
+  overflow-x: auto;
+  margin: 0 calc(-1 * var(--sp-4));
+  padding: 0 var(--sp-4);
+}
+.budget-chain li {
+  display: grid;
+  gap: 2px;
+  align-content: start;
+  padding: var(--sp-3);
+  border-top: 3px solid var(--bar);
+  font-size: var(--fs-small);
+}
+.budget-chain a {
+  font-weight: 700;
+  color: var(--ink);
+  text-decoration: none;
+}
+.budget-chain a:hover {
+  color: var(--blue);
+}
+.budget-chain .amount {
+  color: var(--ink-soft);
+}
+.budget-chain .state {
+  font-size: 12px;
+  color: var(--muted);
+}
+.budget-chain [aria-current] {
+  border-radius: 0 0 var(--r-md) var(--r-md);
+}
+.budget-chain [aria-current].bad {
+  border-top-color: var(--bad);
+  background: var(--bad-soft);
+}
+.budget-chain [aria-current].warn {
+  border-top-color: var(--warn-mark);
+  background: var(--warn-soft);
+}
+.budget-chain [aria-current].ok {
+  border-top-color: var(--ok);
+  background: var(--ok-soft);
+}
+.budget-chain .future {
+  border-top-style: dashed;
+  border-top-color: var(--muted);
+  color: var(--muted);
+}
+
+/* 관계·이 부처의 자료가 쓰인 평가: 누를 수 있는 작은 카드 */
+.rel-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 240px), 1fr));
+  gap: var(--sp-3);
+}
+.rel-card {
+  display: grid;
+  gap: var(--sp-1);
+  align-content: start;
+  padding: var(--sp-4);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  color: var(--ink);
+  text-decoration: none;
+}
+.rel-card:hover {
+  box-shadow: var(--shadow-card-hover);
+}
+.rel-card .k {
+  font-size: var(--fs-micro);
+  font-weight: 700;
+  color: var(--muted);
+}
+.rel-card .s {
+  font-size: var(--fs-small);
+  color: var(--muted);
+}
+
+/* 평가 0건: 비었다는 사실과 이유를 숨기지 않는다. 점선 = 아직 모름 */
+.empty-state {
+  display: grid;
+  gap: var(--sp-3);
+  padding: var(--sp-6);
+  border: 1.5px dashed var(--muted);
+  border-radius: var(--r-lg);
+}
+.empty-state .big {
+  font-size: clamp(1.4rem, 1.1rem + 1vw, var(--fs-d3));
+  font-weight: 900;
+  line-height: 1.3;
+  letter-spacing: -0.03em;
+}
+.empty-state p {
+  color: var(--ink-soft);
+  max-width: 40em;
+}
+.empty-state .links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2) var(--sp-5);
+  font-size: var(--fs-small);
+  font-weight: 700;
+}
+
+/* 지역 페이지의 기관 칩: 휴대폰은 가로로 넘기고, 넓은 화면은 격자 */
+.org-chips {
+  display: flex;
+  gap: var(--sp-2);
+  overflow-x: auto;
+  margin: 0 calc(-1 * var(--sp-4));
+  padding: 0 var(--sp-4) var(--sp-1);
+}
+.org-chip {
+  display: grid;
+  padding: var(--sp-2) var(--sp-3);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  color: var(--ink);
+  text-decoration: none;
+  white-space: nowrap;
+}
+.org-chip b {
+  font-size: var(--fs-small);
+}
+.org-chip span {
+  font-size: 12px;
+  color: var(--muted);
+}
+.org-chip:hover {
+  box-shadow: var(--shadow-card-hover);
+}
+.org-chip.on {
+  border-color: var(--blue);
+  background: var(--blue-soft);
+}
+.org-chip.on span {
+  color: var(--blue);
+  font-weight: 700;
+}
+
+/* 필터: 넓은 화면은 선택 상자 줄, 휴대폰은 알약 단추 + 아래 창 */
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: var(--sp-3);
+  padding: var(--sp-4);
+  border-radius: 14px;
+  background: var(--ground);
+}
+.filters .field {
+  display: grid;
+  gap: var(--sp-1);
+}
+.filters .sort {
+  margin-left: auto;
+}
+.filters select {
+  min-height: 42px;
+  padding: 0 var(--sp-3);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--paper);
+  color: var(--ink);
+  font: 500 var(--fs-small) var(--font-body);
+}
+.filters select:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: 1px;
+}
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 0 var(--sp-4);
+  border: 1px solid var(--line);
+  border-radius: var(--r-pill);
+  background: var(--paper);
+  color: var(--ink);
+  font: 700 var(--fs-small) var(--font-body);
+}
+.pill:hover {
+  background: var(--paper);
+  box-shadow: var(--shadow-card-hover);
+}
+.pill.on {
+  border-color: var(--blue);
+  background: var(--blue-soft);
+  color: var(--blue);
+}
+.filter-sheet {
+  position: fixed;
+  inset: auto 0 0;
+  z-index: 20;
+  display: grid;
+  gap: var(--sp-4);
+  max-height: 80vh;
+  overflow-y: auto;
+  padding: var(--sp-3) var(--sp-5) var(--sp-6);
+  border-radius: 20px 20px 0 0;
+  background: var(--paper);
+  box-shadow: var(--shadow-card);
+}
+
+@media (min-width: 720px) {
+  .prog-row {
+    grid-template-columns:
+      56px minmax(0, 2.2fr) minmax(0, 1fr) minmax(0, 1.2fr)
+      110px;
+    gap: var(--sp-1) var(--sp-5);
+  }
+  .prog-row .axis-ring {
+    grid-row: auto;
+  }
+  .prog-row .as-of {
+    text-align: right;
+  }
+  .prog-head {
+    display: grid;
+    grid-template-columns:
+      56px minmax(0, 2.2fr) minmax(0, 1fr) minmax(0, 1.2fr)
+      110px;
+    gap: var(--sp-5);
+    padding-bottom: var(--sp-2);
+    border-bottom: 1px solid var(--ink);
+    font-size: var(--fs-micro);
+    font-weight: 700;
+    color: var(--muted);
+  }
+  .budget-chain {
+    grid-auto-flow: row;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    margin: 0;
+    padding: 0;
+    overflow: visible;
+  }
+  .org-chips {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+    margin: 0;
+    padding: 0;
+    overflow: visible;
+  }
+  .filter-sheet {
+    display: none;
+  }
+}
+
+@media (min-width: 960px) {
+  .dir-top {
+    grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+  }
+}
