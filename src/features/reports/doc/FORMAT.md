@@ -28,7 +28,7 @@ facts: # 제목 아래 사실 줄 (순서대로)
 typeNote: 이 사업은 … 유형입니다. # 선택
 axisIndicators: # 축별로 무엇을 봤나 (goal, progress, outcome, cost, execution, sustainability, accountability)
   goal: …
-footNote: 1명당 금액은 … # 출처 목록 아래 각주
+footNote: 1명당 금액은 … # 필수. 출처 목록 아래 각주
 ---
 ```
 
