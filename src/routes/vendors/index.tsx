@@ -1,12 +1,16 @@
+import { useSuspenseQuery } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
 import { VendorsSearchSchema } from '#/features/vendors/list'
 import { VendorsPage } from '#/features/vendors/view/vendors-page'
-import { fetchVendorList } from '#/features/worklist/server/worklist.functions'
+import { vendorListQuery } from '#/features/worklist/queries'
 
 /** 용역 탭: /vendors?by=&home=&region=&q=&page= */
 export const Route = createFileRoute('/vendors/')({
   validateSearch: VendorsSearchSchema,
-  loader: () => fetchVendorList(),
+  // 쿼리 데이터는 반환하지 않는다. 반환하면 loaderData와 쿼리 캐시에 두 번 실려 간다
+  loader: async ({ context }) => {
+    await context.queryClient.query(vendorListQuery())
+  },
   head: () => ({
     meta: [
       { title: '용역업체 · glasses' },
@@ -20,6 +24,6 @@ export const Route = createFileRoute('/vendors/')({
 })
 
 function Vendors() {
-  const { items } = Route.useLoaderData()
+  const { items } = useSuspenseQuery(vendorListQuery()).data
   return <VendorsPage items={items} search={Route.useSearch()} />
 }
