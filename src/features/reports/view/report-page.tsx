@@ -206,7 +206,7 @@ function VerdictCard({
   doc: ReportDoc
   summary: Summary
 }) {
-  const { overall, evidence, statuses } = summary
+  const { overall, evidence, statuses, levels } = summary
   const tone = STATUS_TONE[overall]
   return (
     <section
@@ -237,7 +237,7 @@ function VerdictCard({
       </div>
       <p className="sentence">{K.verdict}</p>
       <p className="why">
-        <b>판정 이유</b> {verdictReason(statuses)}{' '}
+        <b>판정 이유</b> {verdictReason(statuses, levels)}{' '}
         <a href="#fold-method">판정 규칙</a>
       </p>
     </section>

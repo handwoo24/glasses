@@ -51,6 +51,19 @@ describe('overallStatus (종합 판정 규칙, 위에서부터 처음 해당하�
     )
   })
 
+  test('핵심 축이 순항이어도 근거가 부족하면 지켜볼 점 있음까지', () => {
+    expect(overallStatus(axes(), { outcome: 'thin' })).toBe('watch')
+    expect(overallStatus(axes(), { progress: 'thin', goal: 'thin' })).toBe(
+      'watch',
+    )
+  })
+
+  test('핵심 축이 아닌 축의 근거 부족은 순항을 막지 않는다', () => {
+    expect(overallStatus(axes(), { goal: 'thin', cost: 'thin' })).toBe(
+      'on-track',
+    )
+  })
+
   test('평가 체계 보고서의 달릴고양 적용 예는 개선 필요', () => {
     const dallil: Record<string, AxisStatus> = {
       goal: 'unknown',
@@ -73,7 +86,8 @@ describe('overallRule (몇 번째 규칙에 걸렸나, 0부터)', () => {
       2,
     )
     expect(overallRule(axes({ cost: 'fix' }))).toBe(3)
-    expect(overallRule(axes())).toBe(4)
+    expect(overallRule(axes(), { progress: 'thin' })).toBe(4)
+    expect(overallRule(axes())).toBe(5)
   })
 
   test('핵심 축이 개선 필요면 다른 축 개수보다 먼저 0번 규칙', () => {

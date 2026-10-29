@@ -5,11 +5,13 @@
 import {
   AXIS_IDS,
   AXIS_INFO,
+  CORE_AXES,
   overallEvidence,
   overallRule,
   overallStatus,
 } from './axes'
 import type {
+  AxisEvidence,
   AxisId,
   AxisStatus,
   AxisStatuses,
@@ -84,6 +86,8 @@ type Judged = {
 
 export interface Summary {
   statuses: AxisStatuses
+  /** 축별 근거 수준 */
+  levels: Record<AxisId, EvidenceLevel>
   overall: AxisStatus
   evidence: OverallEvidence
   fixCount: number
@@ -93,9 +97,13 @@ export function summarize({ axes }: Judged): Summary {
   const statuses = Object.fromEntries(
     AXIS_IDS.map((a) => [a, axes[a].status]),
   ) as AxisStatuses
+  const levels = Object.fromEntries(
+    AXIS_IDS.map((a) => [a, axes[a].evidence]),
+  ) as Record<AxisId, EvidenceLevel>
   return {
     statuses,
-    overall: overallStatus(statuses),
+    levels,
+    overall: overallStatus(statuses, levels),
     evidence: overallEvidence(AXIS_IDS.map((a) => axes[a].evidence)),
     fixCount: AXIS_IDS.filter((a) => statuses[a] === 'fix').length,
   }
@@ -118,7 +126,10 @@ const WATCH_RULE =
   '‘개선 필요’가 한 축이거나 ②·③ 가운데 ‘순항’이 아닌 축이 있으면 ‘지켜볼 점 있음’입니다.'
 
 /** 판정 이유: 종합 판정 규칙의 어느 줄에 어떤 축 때문에 걸렸는지 한두 문장으로 */
-export function verdictReason(statuses: AxisStatuses): string {
+export function verdictReason(
+  statuses: AxisStatuses,
+  levels: AxisEvidence = {},
+): string {
   const fixes = AXIS_IDS.filter((a) => statuses[a] === 'fix')
   const core = (['progress', 'outcome'] as const).filter(
     (a) => statuses[a] !== 'on-track',
@@ -127,7 +138,7 @@ export function verdictReason(statuses: AxisStatuses): string {
     core.length === 2
       ? '② 진척과 ③ 성과'
       : core.map((a) => axisName(a)).join('')
-  switch (overallRule(statuses)) {
+  switch (overallRule(statuses, levels)) {
     case 0: {
       const name = axisName(
         statuses.progress === 'fix' ? 'progress' : 'outcome',
@@ -145,6 +156,12 @@ export function verdictReason(statuses: AxisStatuses): string {
       return core.length > 0
         ? `${fix}이고, ${notOnTrack} ${WATCH_RULE}`
         : `${fix}입니다. ${WATCH_RULE}`
+    }
+    case 4: {
+      const thin = CORE_AXES.filter((a) => levels[a] === 'thin')
+        .map(axisName)
+        .join('과 ')
+      return `② 진척과 ③ 성과가 ‘순항’이지만 ${thin}의 근거가 부족합니다. 핵심 축 가운데 하나라도 근거가 부족하면 종합 판정은 ‘지켜볼 점 있음’까지입니다.`
     }
     default:
       return '② 진척과 ③ 성과가 ‘순항’이고 ‘개선 필요’인 축이 없어 ‘순항’입니다.'
