@@ -1,24 +1,14 @@
 // 기관 고르기(/orgs) · 기관 페이지(/orgs/{코드}) · 사업 목록(/programs)이 읽는 것. 서버에서만.
-// 기관 레지스트리, 사업 카드(정체성 필드만), 재정 문서, 게시 요약을 한 번에 읽어 60초 동안 나눠 쓴다.
-import type { DocumentSnapshot } from 'firebase-admin/firestore'
-import type { ZodType } from 'zod'
-import {
-  BudgetDocSchema,
-  CENTRAL_TYPES,
-  OrgSchema,
-  ProgramSchema,
-} from '#/pipeline/schemas'
-import type { BudgetDoc, Org, Program } from '#/pipeline/schemas'
-import { db } from '#/pipeline/store'
-import {
-  memo,
-  publishedSummaries,
-} from '#/features/reports/server/report-docs.server'
+// 기관 레지스트리, 사업 카드(정체성 필드만), 재정 문서, 게시 요약은 목록 스냅샷(snapshot.server.ts)에서 받는다.
+import { CENTRAL_TYPES } from '#/pipeline/schemas'
+import type { BudgetDoc, Org } from '#/pipeline/schemas'
 import type { ReportSummary } from '#/features/reports/summary'
 import { byOrgOrder, listedReport } from '../list'
 import type { ListedReport } from '../list'
+import type { DirectoryData } from '../snapshot'
 import { orgCatalog } from './catalog.server'
 import type { OrgCatalog } from './catalog.server'
+import { directoryData } from './snapshot.server'
 
 /** 기관 목록 한 칸 */
 export interface DirOrg {
@@ -51,59 +41,29 @@ export interface OrgPage {
   budgets: Array<BudgetEntry>
 }
 
-type Card = Pick<
-  Program,
-  'name' | 'org' | 'region' | 'field' | 'nationalProgram'
-> & { id: string }
+type Card = DirectoryData['cards'][number]
 
-function parsed<T>(schema: ZodType<T>, d: DocumentSnapshot): Array<T> {
-  const r = schema.safeParse(d.data())
-  if (r.success) return [r.data]
-  console.warn(`[directory] 양식이 맞지 않아 건너뜀: ${d.ref.path}`)
-  return []
+function indexed(data: DirectoryData) {
+  return {
+    orgs: new Map(data.orgs.map((o) => [o.id, o.org] as const)),
+    cards: new Map(data.cards.map((c) => [c.id, c] as const)),
+    budgetDocs: data.budgetDocs,
+    summaries: data.summaries,
+  }
 }
+type Snapshot = ReturnType<typeof indexed>
 
-const CardFields = ProgramSchema.pick({
-  name: true,
-  org: true,
-  region: true,
-  field: true,
-  nationalProgram: true,
-})
+/** 스냅샷이 바뀔 때만 찾기용 표를 다시 만든다 */
+const byData = new WeakMap<DirectoryData, Snapshot>()
 
-async function readAll() {
-  const store = db()
-  const [orgs, programs, budgets, summaries] = await Promise.all([
-    store.collection('orgs').get(),
-    store
-      .collection('programs')
-      .select('name', 'org', 'region', 'field', 'nationalProgram')
-      .get(),
-    store.collectionGroup('budgets').get(),
-    publishedSummaries(),
-  ])
-  const orgMap = new Map(
-    orgs.docs.flatMap((d) =>
-      parsed(OrgSchema, d).map((o) => [d.id, o] as const),
-    ),
-  )
-  const cards = new Map<string, Card>(
-    programs.docs.flatMap((d) =>
-      parsed(CardFields, d).map((p) => [d.id, { id: d.id, ...p }] as const),
-    ),
-  )
-  const budgetDocs = budgets.docs.flatMap((d) =>
-    parsed(BudgetDocSchema, d).map((doc) => ({
-      org: d.ref.parent.parent?.id ?? '',
-      id: d.id,
-      doc,
-    })),
-  )
-  return { orgs: orgMap, cards, budgetDocs, summaries }
+async function snapshot(): Promise<Snapshot> {
+  const data = await directoryData()
+  const hit = byData.get(data)
+  if (hit) return hit
+  const made = indexed(data)
+  byData.set(data, made)
+  return made
 }
-
-const snapshot = memo(readAll)
-type Snapshot = Awaited<ReturnType<typeof readAll>>
 
 /** 분야 이름의 가운뎃점은 출처마다 다르다(산업ㆍ중소기업 / 산업·중소기업). 한 글자로 맞춘다 */
 const sectorOf = (card: Card | undefined) =>
