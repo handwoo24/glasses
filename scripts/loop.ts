@@ -589,11 +589,30 @@ async function runStep(
     }
     case 'publish': {
       const report = `${subject}/reports/${await latestReport(subject)}`
-      try {
+      const tryPublish = async () => {
         const r = await pipeline<Record<string, unknown>>('publish', report)
         run.log(subject, `게시 ok: ${JSON.stringify(r)}`)
+      }
+      try {
+        await tryPublish()
       } catch (e) {
-        throw new StopSubject(`게시 거부: ${(e as Error).message}`)
+        const why = (e as Error).message
+        // 사실 원장의 인용 문제는 리포트를 바꾸지 않고 원장 칸이 고친다. 고친 뒤 한 번만 다시 게시해 본다
+        if (!why.includes('check-facts'))
+          throw new StopSubject(`게시 거부: ${why}`)
+        run.log(
+          subject,
+          `게시 거부(${why}) → 사실 원장 칸이 check-facts 문제만 고침`,
+        )
+        await worker(
+          run,
+          subject,
+          'ledger',
+          `${base}\n할 일: check-facts 문제만 고친다. \`npm run pipeline -- check-facts ${subject}\`가 낸 문제의 사실을 원문과 대조해 인용·위치를 바로잡는다. 새 사실을 더하거나 리포트를 고치지 않는다.`,
+        )
+        await tryPublish().catch((again: unknown) => {
+          throw new StopSubject(`게시 거부: ${(again as Error).message}`)
+        })
       }
     }
   }
