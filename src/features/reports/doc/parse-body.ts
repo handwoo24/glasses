@@ -85,10 +85,17 @@ export function parseOverview(sec: Section): ReportDoc['overview'] {
   return { cells, chips: { label, cite, items: chipItems } }
 }
 
-/** 종합 판정: 판정 문단(업체 리포트는 없음) + ### 다음 판단 시점 */
-export function parseVerdict(sec: Section, paragraph = true) {
+/**
+ * 종합 판정: ### 다음 판단 시점 목록. 판정 문단은 쓰지 않는다(판정은 축 상태로 계산하고, 화면에 나오지 않는다).
+ * oldParagraph면 판정 문단이 있는 옛 판도 읽는다(문장 규칙이 새로 쓰는 판을 막는다)
+ */
+export function parseVerdict(sec: Section, oldParagraph = false) {
   const { before, sections } = splitSections(sec.nodes, 3, sec.where)
-  const [p] = expectNodes(before, paragraph ? ['paragraph'] : [], sec.where)
+  const [p] = expectNodes(
+    before,
+    oldParagraph && before.length ? ['paragraph'] : [],
+    sec.where,
+  )
   const next = namedSections(sections, ['다음 판단 시점'], sec.where).get(
     '다음 판단 시점',
   )

@@ -64,8 +64,10 @@ export function lintSentences(list: ReadonlyArray<string>): Array<string> {
 /** 규칙 위반 목록. 없으면 빈 배열 */
 export function lintReportDoc(a: ReportDoc): Array<string> {
   return [
-    ...(a.verdict.split(/(?<=다\.)\s+/).length > 4
-      ? ['종합 판정은 4문장 안쪽']
+    ...(a.verdict
+      ? [
+          '종합 판정 구역에는 판정 문단을 쓰지 않는다(### 다음 판단 시점 목록만)',
+        ]
       : []),
     ...lintAxes(a.axes, AXIS_IDS),
     ...lintSentences(sentences(a)),

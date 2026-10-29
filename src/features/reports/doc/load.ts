@@ -177,7 +177,7 @@ function readReportDoc(src: string): ReportDoc {
     const sec = s.get(k)
     return sec && fn(sec)
   }
-  const { verdict, nextDates } = parseVerdict(get('verdict'))
+  const { verdict, nextDates } = parseVerdict(get('verdict'), true)
   const { request, moreActions } = parseActions(get('actions'))
   const actions = {
     request,

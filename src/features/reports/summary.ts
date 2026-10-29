@@ -14,7 +14,8 @@ export const ReportSummarySchema = z.strictObject({
   subject: z.string().min(1).optional(),
   project: z.string().min(1),
   title: z.string().min(1),
-  verdict: z.string().min(1),
+  /** 옛 판의 판정 문단. 새 판에는 없다 */
+  verdict: z.string().min(1).optional(),
   /** 화면 표기(2026. 10. 27.) */
   asOf: z.string().min(1),
   nextDates: z.array(
@@ -41,7 +42,7 @@ export function toSummary(doc: ReportDoc): ReportSummary {
     ...(doc.subject ? { subject: doc.subject } : {}),
     project: doc.project,
     title: doc.title,
-    verdict: doc.verdict,
+    ...(doc.verdict ? { verdict: doc.verdict } : {}),
     asOf: doc.asOf,
     nextDates: doc.nextDates.map((d) => ({ ...d })),
     axes,

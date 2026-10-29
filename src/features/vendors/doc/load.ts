@@ -155,7 +155,7 @@ function readVendorDoc(src: string): VendorReportDoc {
     src,
     sources.map((x) => x.id),
   )
-  const { nextDates } = parseVerdict(get('verdict'), false)
+  const { nextDates } = parseVerdict(get('verdict'))
   const { request, moreActions } = parseActions(get('actions'))
   return {
     slug: f.slug,
