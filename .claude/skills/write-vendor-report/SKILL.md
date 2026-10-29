@@ -7,7 +7,7 @@ description: 사업 안의 업체 하나(programs/{기관코드}.{사업}/vendor
 
 업체 리포트는 “이 업체가 좋은 회사인가”가 아니라 “이 사업에서 맡은 계약을 약속대로 해냈나”를 묻는다. 평가 단위는 **사업 × 업체**이고, 근거는 계약·검수·지급·제재 같은 공식 기록뿐이다. 사업 리포트 작성(`write-report`)의 원칙(한 세션 하나, 공식 자료만, 언론은 단서, 사실 원장에서 출발, 이름 가리기)을 그대로 따르고, 다른 점만 여기 적는다.
 
-- 양식: `src/features/vendors/doc/FORMAT.md`, 예시 `src/features/vendors/doc/__fixtures__/samsung-tng.md`
+- 양식: `src/features/vendors/doc/FORMAT.md`
 - 축과 판정 규칙: `src/features/vendors/axes.ts` (6개 축, 축마다 책임 주체)
 
 ## 업체 카드 (목록화)

@@ -12,7 +12,7 @@ maxTurns: 120
 ## 먼저 읽기
 
 - `.claude/skills/write-vendor-report/SKILL.md` 전부.
-- 양식 `src/features/vendors/doc/FORMAT.md`, 예시 `src/features/vendors/doc/__fixtures__/samsung-tng.md`.
+- 양식 `src/features/vendors/doc/FORMAT.md`.
 - `npm run pipeline -- ls {업체 경로}/facts`, `…/absences`, `…/reports`, 그리고 사업 쪽 게시 리포트(맥락).
 
 ## 개요 (초안 전에)

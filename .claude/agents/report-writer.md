@@ -12,7 +12,7 @@ maxTurns: 120
 ## 먼저 읽기
 
 - `.claude/skills/write-report/SKILL.md`의 "리포트 초안"과 "걸려 넘어진 것".
-- 양식 `src/features/reports/doc/FORMAT.md`, 예시 `src/features/reports/doc/__fixtures__/autonomous-bus.md`.
+- 양식 `src/features/reports/doc/FORMAT.md`.
 - `npm run pipeline -- ls programs/{id}/facts`, `…/absences`, `…/reports`.
 
 ## 개요 (초안 전에)

@@ -74,7 +74,7 @@ publishedVendors/{주소}                  사이트에 보이는 업체 리포�
 
 ## 업체 루프
 
-사업 리포트가 게시되면 업체 루프(`scripts/loop.sh --vendors`, 스킬 [`run-vendor-loop`](../../.claude/skills/run-vendor-loop/SKILL.md))가 이어받는다. 큐는 따로 적지 않는다. `npm run pipeline -- vendor-worklist`가 업체 목록화가 남은 게시 사업(사업 카드에 `vendorsListedAt`이 없는 것)과 업체 카드별 단계(사업과 같은 계산)를 돌려준다.
+사업 리포트가 게시되면 업체 루프(`scripts/loop.sh --vendors`, 러너 `scripts/loop.ts`)가 이어받는다. 큐는 따로 적지 않는다. `npm run pipeline -- vendor-worklist`가 업체 목록화가 남은 게시 사업(사업 카드에 `vendorsListedAt`이 없는 것)과 업체 카드별 단계(사업과 같은 계산)를 돌려준다.
 
 | 칸        | 일꾼                                      | 남기는 것                                                                       |
 | --------- | ----------------------------------------- | ------------------------------------------------------------------------------- |
