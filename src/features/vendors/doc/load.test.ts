@@ -61,6 +61,16 @@ describe('업체 리포트 문서 읽기', () => {
     expect(lintVendorDoc(doc)).toEqual([])
   })
 
+  test('가리지 않은 화자 이름은 문장 규칙에 걸린다', () => {
+    const named = loadVendorDoc(
+      fixture.replace(
+        '스마트시티과장(2026. 8.): 객관적으로',
+        '스마트시티과장(2026. 8.): ○스마트시티과장 홍길동 객관적으로',
+      ),
+    )
+    expect(lintVendorDoc(named).join('\n')).toContain('○○○로 가린다')
+  })
+
   test('사업 리포트의 구역을 쓰면 실패한다', () => {
     expect(() =>
       loadVendorDoc(fixture.replace('## 맡은 일', '## 사업 개요')),

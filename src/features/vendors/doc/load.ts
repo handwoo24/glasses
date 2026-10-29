@@ -31,13 +31,14 @@ import {
 import { check, expectNodes, splitSections } from '../../reports/doc/sections'
 import type { Section } from '../../reports/doc/sections'
 import type { Panel } from '../../reports/report-doc'
+import { ORG } from '#/pipeline/schemas'
 import { VENDOR_AXES, VENDOR_AXIS_IDS } from '../axes'
 import type { VendorReportDoc } from '../vendor-doc'
 
 const FrontSchema = z.strictObject({
   slug: z.string().regex(/^[a-z0-9-]+$/),
   kind: z.literal('vendor'),
-  program: z.string().regex(/^programs\/\d{7}\.[a-z0-9-]+$/),
+  program: z.string().regex(new RegExp(`^programs/${ORG}\\.[a-z0-9-]+$`)),
   project: z.string().min(1),
   vendor: z.string().min(1),
   bizno: z.string().regex(/^\d{3}-\d{2}-\d{5}$/),

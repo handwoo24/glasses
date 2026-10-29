@@ -83,11 +83,31 @@ async function orderFor(slug: string, subject: string): Promise<number> {
   return docs.reduce((max, d) => Math.max(max, d.order), 0) + 1
 }
 
-/** 업체 게시 주소가 다른 업체가 쓰는 주소가 아닌지 */
+/**
+ * 업체 게시 주소: 다른 업체가 쓰는 주소면 안 되고, 이 업체가 이미 다른 주소로 게시돼 있으면 주소를 바꾸지 않는다.
+ * 옛 주소의 게시 문서가 바뀐 리포트를 가리키면 그 주소가 깨지는데, 도구에는 지우는 명령이 없다
+ */
+export function vendorSlugBlocker(
+  slug: string,
+  subject: string,
+  published: ReadonlyArray<{ slug: string; subject: string }>,
+): string | undefined {
+  const taken = published.find((p) => p.slug === slug)
+  if (taken && taken.subject !== subject)
+    return `게시 주소 ${slug}는 다른 업체(${taken.subject})가 쓰고 있다`
+  const mine = published.find((p) => p.subject === subject)
+  if (mine && mine.slug !== slug)
+    return `이 업체는 이미 ${mine.slug}로 게시돼 있다. 머리말 slug를 ${mine.slug}로 둔다`
+  return undefined
+}
+
 async function checkVendorSlug(slug: string, subject: string): Promise<void> {
-  const same = await get(`publishedVendors/${slug}`)
-  if (same && PublishedVendorSchema.parse(same).subject !== subject)
-    throw new Error(`게시 주소 ${slug}는 다른 업체가 쓰고 있다`)
+  const published = (await list('publishedVendors')).map(({ id, data }) => ({
+    slug: id,
+    subject: PublishedVendorSchema.parse(data).subject,
+  }))
+  const blocker = vendorSlugBlocker(slug, subject, published)
+  if (blocker) throw new Error(`게시하지 않는다: ${blocker}`)
 }
 
 /** 리포트 한 판을 게시한다. 게시 주소와 순서(업체 리포트는 없음)를 돌려준다 */

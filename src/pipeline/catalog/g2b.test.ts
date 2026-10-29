@@ -26,6 +26,27 @@ describe('나라장터 응답에서 사람 정보 지우기', () => {
     })
   })
 
+  test('개찰업체 정보(opengCorpInfo)의 대표자 칸을 비운다', () => {
+    expect(
+      stripPeople({
+        opengCorpInfo: '주식회사 삼성티엔지^1098628406^홍길동^1061675200^0',
+      }),
+    ).toEqual({
+      opengCorpInfo: '주식회사 삼성티엔지^1098628406^^1061675200^0',
+    })
+  })
+
+  test('대소문자가 다른 사람 필드도 지운다', () => {
+    expect(
+      stripPeople({
+        ofclNm: '김담당',
+        emailAdrs: 'a@b.c',
+        chrgrNm: '박담당',
+        x: 1,
+      }),
+    ).toEqual({ x: 1 })
+  })
+
   test('중첩된 응답 전체를 훑는다', () => {
     const body = {
       response: {

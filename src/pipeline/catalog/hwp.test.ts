@@ -1,6 +1,6 @@
 import { existsSync, readFileSync } from 'node:fs'
 import { describe, expect, test } from 'vitest'
-import { hwpText, paraTexts } from './hwp'
+import { hwpText, paraTexts, readCfb } from './hwp'
 
 /** 레코드 머리(태그 10비트, 크기 12비트) + 본문 */
 function record(tag: number, body: Buffer): Buffer {
@@ -25,11 +25,52 @@ describe('한글 본문 레코드', () => {
     ])
   })
 
+  test('탭과 인라인 컨트롤도 16바이트를 차지한다', () => {
+    const tab = Buffer.alloc(16)
+    tab.writeUInt16LE(9, 0)
+    const inline = Buffer.alloc(16)
+    inline.writeUInt16LE(19, 0)
+    const buf = record(
+      67,
+      Buffer.concat([utf16('가'), tab, utf16('나'), inline, utf16('다')]),
+    )
+    expect(paraTexts(buf)).toEqual(['가\t나다'])
+  })
+
+  test('잘린 확장 크기 레코드는 이유를 붙여 실패한다', () => {
+    const header = Buffer.alloc(4)
+    header.writeUInt32LE((67 | (0xfff << 20)) >>> 0)
+    expect(() => paraTexts(header)).toThrow('한글 본문 레코드가 잘렸다')
+  })
+
   test('16바이트 컨트롤 문자(표·그림 자리)는 건너뛴다', () => {
     const control = Buffer.alloc(16)
     control.writeUInt16LE(11, 0)
     const buf = record(67, Buffer.concat([utf16('앞'), control, utf16('뒤')]))
     expect(paraTexts(buf)).toEqual(['앞뒤'])
+  })
+})
+
+describe('깨진 OLE 파일', () => {
+  /** 512바이트 머리 + 빈 섹터 두 개. 필요한 칸만 채운다 */
+  function header(fields: Record<number, number>): Buffer {
+    const b = Buffer.alloc(512 * 3, 0)
+    b.writeUInt16LE(9, 30) // 섹터 512
+    b.writeUInt16LE(6, 32) // 미니 섹터 64
+    b.fill(0xff, 76, 76 + 109 * 4)
+    for (const [off, v] of Object.entries(fields))
+      b.writeUInt32LE(v, Number(off))
+    return b
+  }
+
+  test('DIFAT 사슬이 파일 밖을 가리키면 멈추지 않고 실패한다', () => {
+    expect(() => readCfb(header({ 68: 1000, 44: 0 }))).toThrow('OLE')
+  })
+
+  test('DIFAT 섹터가 자기 자신을 가리켜도 멈춘다', () => {
+    const b = header({ 68: 0, 44: 0 })
+    b.writeUInt32LE(0, 512 + 508) // 섹터 0의 마지막 칸 = 다음 DIFAT 섹터 0
+    expect(() => readCfb(b)).toThrow('OLE')
   })
 })
 

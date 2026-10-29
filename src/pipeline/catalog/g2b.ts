@@ -3,18 +3,25 @@
 
 const BASE = 'https://apis.data.go.kr/1230000'
 
-/** 사람 이름·연락처가 들어 있는 필드 (대표자, 계약·공고 담당자, 낙찰업체 담당자) */
+/** 사람 이름·연락처가 들어 있는 필드 (대표자, 계약·공고 담당자, 낙찰업체 담당자). 대소문자를 가리지 않는다 */
 const PERSON_FIELD =
-  /(CeoNm|ceoNm|Ofcl|exctvNm|TelNo|telNo|FaxNo|faxNo|Email|rprsntvNm)/
+  /(ceoNm|ofcl|exctvNm|chrgr?Nm|mngrNm|telNo|faxNo|email|rprsntvNm)/i
 
-/** corpList: [순번^구분^공동^업체명^대표자명^국가^지분^업체명^^사업자번호], … — 대표자 칸(5번째)을 비운다 */
-function blankCeo(corpList: string): string {
-  return corpList
+/** ^로 이은 업체 문자열에서 대표자 칸의 위치 (0부터) */
+const CARET_PERSON: Readonly<Record<string, number>> = {
+  /** [순번^구분^공동^업체명^대표자명^국가^지분^업체명^^사업자번호], … */
+  corpList: 4,
+  /** 업체명^사업자번호^대표자명^투찰금액^투찰률 */
+  opengCorpInfo: 2,
+}
+
+function blankAt(value: string, index: number): string {
+  return value
     .split('],[')
     .map((seg) =>
       seg
         .split('^')
-        .map((part, i) => (i === 4 ? '' : part))
+        .map((part, i) => (i === index ? '' : part))
         .join('^'),
     )
     .join('],[')
@@ -28,8 +35,8 @@ export function stripPeople(value: unknown): unknown {
         .filter(([k]) => !PERSON_FIELD.test(k))
         .map(([k, v]) => [
           k,
-          k === 'corpList' && typeof v === 'string'
-            ? blankCeo(v)
+          k in CARET_PERSON && typeof v === 'string'
+            ? blankAt(v, CARET_PERSON[k])
             : stripPeople(v),
         ]),
     )

@@ -72,12 +72,26 @@ async function mustExist(store: Firestore, path: string, why: string) {
     throw new Error(`${why}: ${path} 이 없다`)
 }
 
+/** 업체 리포트 머리말의 사업·사업자등록번호가 저장 경로와 같은지 */
+export function checkVendorDocPath(
+  doc: { program: string; bizno: string },
+  subject: string,
+): void {
+  const [program, bizno] = subject.split('/vendors/')
+  if (doc.program !== program || doc.bizno.replaceAll('-', '') !== bizno)
+    throw new Error(
+      `업체 리포트 머리말(${doc.program}, ${doc.bizno})이 저장 경로(${subject})와 다르다`,
+    )
+}
+
 /** 리포트는 리포트 문서 양식과 문장 규칙을 통과해야 쓴다. 업체 평가 대상이면 업체 리포트 양식 */
 function checkReport(markdown: string, subject: string | undefined): void {
-  const problems =
-    subject && VENDOR_SUBJECT_PATH.test(subject)
-      ? lintVendorDoc(loadVendorDoc(markdown))
-      : lintReportDoc(loadReportDoc(markdown))
+  let problems: Array<string>
+  if (subject && VENDOR_SUBJECT_PATH.test(subject)) {
+    const doc = loadVendorDoc(markdown)
+    checkVendorDocPath(doc, subject)
+    problems = lintVendorDoc(doc)
+  } else problems = lintReportDoc(loadReportDoc(markdown))
   if (problems.length)
     throw new Error(`리포트 문장 규칙 위반:\n  ${problems.join('\n  ')}`)
 }
@@ -121,6 +135,7 @@ async function checkPublishedVendor(
   if (record.status !== 'published')
     throw new Error(`status가 published인 리포트만 게시한다: ${report}`)
   const doc = loadVendorDoc(record.markdown)
+  checkVendorDocPath(doc, String(data.subject))
   if (doc.slug !== slug)
     throw new Error(
       `게시 주소(${slug})와 리포트 머리말의 slug(${doc.slug})가 다르다`,

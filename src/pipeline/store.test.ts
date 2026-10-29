@@ -211,15 +211,28 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST)(
       ).rejects.toThrow('근거 사실 먼저')
 
       // 업체 평가 대상의 리포트는 업체 리포트 양식으로 검사한다
-      const vendorMd = readFileSync(
+      const samsung = readFileSync(
         'src/features/vendors/doc/__fixtures__/samsung-tng.md',
         'utf8',
       ).replace(
         'slug: samsung-tng-smartcity-center-maintenance',
         `slug: test-${RUN}`,
       )
+      const vendorMd = samsung
+        .replace(
+          'program: programs/3940000.autonomous-bus',
+          `program: ${PROGRAM}`,
+        )
+        .replace(
+          'bizno: 109-86-28406',
+          `bizno: ${bizno.slice(0, 3)}-${bizno.slice(3, 5)}-${bizno.slice(5)}`,
+        )
       const vendorReport = `${card}/reports/2026-10-29`
       await expect(put(vendorReport, record(md))).rejects.toThrow('머리말')
+      // 다른 업체의 리포트를 이 업체 경로에 쓰지 않는다
+      await expect(put(vendorReport, record(samsung))).rejects.toThrow(
+        '저장 경로',
+      )
       await put(vendorReport, record(vendorMd, 'published'))
       const published = {
         report: vendorReport,

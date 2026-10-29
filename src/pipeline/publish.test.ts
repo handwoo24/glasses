@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { publishBlocker } from './publish'
+import { publishBlocker, vendorSlugBlocker } from './publish'
 
 const written = '2026-10-28T12:00:00Z'
 const before = '2026-10-28T11:00:00Z'
@@ -64,5 +64,26 @@ describe('publishBlocker', () => {
       { report: '2026-10-28', verdict: 'pass' as const, reviewedAt: after },
     ]
     expect(publishBlocker('2026-10-28', reports, reviews)).toMatch(/in-review/)
+  })
+})
+
+describe('업체 게시 주소', () => {
+  const A = 'programs/3940000.bus/vendors/1111111111'
+  const B = 'programs/3940000.bus/vendors/2222222222'
+  it('처음 게시는 통과', () => {
+    expect(vendorSlugBlocker('a', A, [])).toBeUndefined()
+  })
+  it('다른 업체가 쓰는 주소는 막는다', () => {
+    expect(vendorSlugBlocker('a', B, [{ slug: 'a', subject: A }])).toContain(
+      '다른 업체',
+    )
+  })
+  it('이미 게시된 업체의 주소를 바꾸지 않는다', () => {
+    expect(vendorSlugBlocker('b', A, [{ slug: 'a', subject: A }])).toContain(
+      '이미 a로 게시',
+    )
+    expect(
+      vendorSlugBlocker('a', A, [{ slug: 'a', subject: A }]),
+    ).toBeUndefined()
   })
 })
