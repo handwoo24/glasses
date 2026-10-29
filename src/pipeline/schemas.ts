@@ -47,12 +47,23 @@ export const MATERIAL_ID = /^m-[0-9a-f]{12}$/
 
 export const ORG_TYPES = [
   '중앙행정기관',
+  /** 국회·대법원·헌법재판소·중앙선관위·감사원 */
+  '헌법기관',
+  /** 행정부 밖이거나 독립한 국가기관 (국가인권위원회, 공수처, 국가정보원 …) */
+  '독립기관',
   '광역자치단체',
   '기초자치단체',
   '지방의회',
   '교육청',
   '공공기관',
 ] as const
+
+/** 중앙 예산 소관이 되는 국가기관 (부처 목록에 함께 보인다) */
+export const CENTRAL_TYPES: ReadonlySet<(typeof ORG_TYPES)[number]> = new Set([
+  '중앙행정기관',
+  '헌법기관',
+  '독립기관',
+])
 
 /** 기관 레지스트리 */
 export const OrgSchema = z.strictObject({

@@ -1,11 +1,13 @@
 /* 기관·부처·사업 목록·재정 문서 판 사슬(디자인 시스템 v2). 캔버스 시안 ‘기관 · 부처’, ‘홈 · 목록’,
    ‘재정 문서’를 옮긴 스타일이다. 페이지는 데이터(기관 레지스트리, 게시 요약)가 생기면 만든다.
-   머리(이름·칩·사실 줄)는 page.css의 .rp-hero, 다음 판단 시점은 .rp-next, 7조각 링은 .axis-ring을 쓴다. 토큰만 쓴다 */
+   머리(이름·칩·사실 줄)는 page.css의 .rp-hero, 번호 구역은 .rp-sec·.rp-sh, 7개 축은 .axis-sum(list)을 쓴다. 토큰만 쓴다 */
 
 .dir {
   max-width: 1160px;
   margin: 0 auto;
   display: grid;
+  /* 넓은 자식(긴 선택 상자 옵션)이 열을 늘려 휴대폰에서 가로로 넘치지 않게 */
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--sp-8);
 }
 .dir-top {
@@ -77,22 +79,35 @@
   color: var(--ink-soft);
 }
 
-/* 평가한 사업 줄(기관 페이지)과 사업 목록 줄: 링 · 이름과 판정 이유 · 판정과 다음 판단 시점 */
+/* 평가한 사업 줄(기관 페이지)과 사업 목록 줄: 이름 · 7개 축 막대 · 판정 · 다음 판단 시점 · 자료 기준 */
+.prog-rows,
+.org-chips,
+.budget-chain {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
 .prog-rows {
   display: grid;
 }
 .prog-row {
   display: grid;
-  grid-template-columns: 52px minmax(0, 1fr);
-  gap: var(--sp-1) var(--sp-3);
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--sp-2) var(--sp-3);
   align-items: center;
   padding: var(--sp-4) 0;
   border-bottom: 1px solid var(--line);
   color: var(--ink);
   text-decoration: none;
 }
-.prog-row .axis-ring {
-  grid-row: span 3;
+.prog-row .name {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  grid-column: 1 / -1;
+}
+.prog-row .axis-sum {
+  min-width: 0;
 }
 .prog-row .kicker {
   font-size: var(--fs-micro);
@@ -108,10 +123,6 @@
   color: var(--blue);
   text-decoration: underline;
   text-underline-offset: 3px;
-}
-.prog-row .why {
-  font-size: var(--fs-small);
-  color: var(--ink-soft);
 }
 .prog-row .meta {
   display: flex;
@@ -206,6 +217,9 @@
 .rel-card:hover {
   box-shadow: var(--shadow-card-hover);
 }
+.rel-card {
+  min-width: 0;
+}
 .rel-card .k {
   font-size: var(--fs-micro);
   font-weight: 700;
@@ -250,14 +264,20 @@
   margin: 0 calc(-1 * var(--sp-4));
   padding: 0 var(--sp-4) var(--sp-1);
 }
+.org-chips > li {
+  flex: 0 0 min(15rem, 70vw);
+}
 .org-chip {
   display: grid;
+  align-content: start;
+  gap: 2px;
+  min-width: 0;
+  height: 100%;
   padding: var(--sp-2) var(--sp-3);
   border: 1px solid var(--line);
   border-radius: var(--r-md);
   color: var(--ink);
   text-decoration: none;
-  white-space: nowrap;
 }
 .org-chip b {
   font-size: var(--fs-small);
@@ -290,12 +310,17 @@
 }
 .filters .field {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--sp-1);
+  min-width: 0;
+  max-width: 100%;
 }
 .filters .sort {
   margin-left: auto;
 }
 .filters select {
+  max-width: 100%;
+  text-overflow: ellipsis;
   appearance: none;
   min-height: 44px;
   padding: 0 44px 0 14px;
@@ -344,15 +369,333 @@
   box-shadow: var(--shadow-card);
 }
 
+/* 다음 판단 시점 상자: 남색 옅은 면, 가장 가까운 날을 크게 */
+.next-box {
+  display: grid;
+  gap: var(--sp-2);
+  align-content: start;
+  padding: var(--sp-6);
+  border-radius: var(--r-lg);
+  background: var(--blue-soft);
+}
+.next-box .wl-k {
+  color: var(--blue);
+}
+.next-box .when {
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp-2);
+}
+.next-box .when b {
+  font-size: var(--fs-d2);
+  font-weight: 900;
+  line-height: 1;
+  letter-spacing: -0.03em;
+  color: var(--blue);
+}
+.next-box a {
+  font-weight: 700;
+  color: var(--ink);
+}
+.next-box ol {
+  display: grid;
+  gap: var(--sp-1);
+  padding: var(--sp-3) 0 0;
+  margin: 0;
+  list-style: none;
+  border-top: 1px solid var(--line);
+  font-size: var(--fs-small);
+  color: var(--ink-soft);
+}
+.next-box .s {
+  font-size: var(--fs-small);
+  color: var(--ink-soft);
+}
+.dist-box {
+  display: grid;
+  gap: 6px;
+}
+.dir-go {
+  font-size: var(--fs-small);
+  font-weight: 700;
+}
+.dir-none {
+  font-size: var(--fs-small);
+  color: var(--ink-soft);
+}
+.dir-n {
+  color: var(--muted);
+}
+
+/* 기관 고르기: 부처 · 지역 나누기 */
+.dir-tabs {
+  display: flex;
+  gap: var(--sp-2);
+}
+.dir-tabs a {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 0 var(--sp-4);
+  border: 1px solid var(--line);
+  border-radius: var(--r-pill);
+  color: var(--ink);
+  font-weight: 700;
+  text-decoration: none;
+}
+.dir-tabs a span {
+  color: var(--muted);
+  font-weight: 500;
+}
+.dir-tabs a:hover {
+  box-shadow: var(--shadow-card-hover);
+}
+.dir-tabs a[aria-current='page'] {
+  border-color: var(--blue);
+  background: var(--blue-soft);
+  color: var(--blue);
+}
+
+/* 더 알아보는 방법 */
+.dir-more {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 240px), 1fr));
+  gap: var(--sp-3) var(--sp-6);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--fs-small);
+}
+.dir-more li {
+  display: grid;
+  gap: 2px;
+}
+.dir-more .k {
+  font-size: var(--fs-micro);
+  font-weight: 700;
+  color: var(--muted);
+}
+
+/* 긴 이름(기관 정식 명칭, 사업 이름): 칸 안에서 두 줄까지 줄바꿈하고 넘치면 말줄임. 전체 이름은 title로 */
+.org-chip b,
+.rel-card b,
+.vl-name a,
+.vl-eng .what a {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+}
+.prog-row h3 {
+  overflow-wrap: anywhere;
+}
+
+/* 쪽 번호 */
+.pager {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-3);
+  padding-top: var(--sp-4);
+}
+.pager .count {
+  font-size: var(--fs-small);
+  color: var(--muted);
+}
+.pager ol {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.pager .pg {
+  display: inline-grid;
+  place-items: center;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0 var(--sp-3);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  color: var(--ink);
+  font-size: var(--fs-small);
+  font-weight: 700;
+  text-decoration: none;
+}
+.pager a.pg:hover {
+  box-shadow: var(--shadow-card-hover);
+}
+.pager a.pg:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: 2px;
+}
+.pager .pg[aria-current='page'],
+.pager a.pg.active[aria-current='page'] {
+  border-color: var(--blue);
+  background: var(--blue);
+  color: var(--paper);
+}
+.pager .pg.off {
+  color: var(--muted);
+  border-style: dashed;
+}
+.pager .gap {
+  display: inline-grid;
+  place-items: center;
+  min-width: 24px;
+  color: var(--muted);
+}
+
+/* 용역 탭: 업체 한 줄 + 사업별 줄 */
+.vl-rows {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.vl-row {
+  display: grid;
+  gap: var(--sp-2);
+  padding: var(--sp-4) 0;
+  border-bottom: 1px solid var(--line);
+}
+.vl-head {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: var(--sp-1) var(--sp-4);
+}
+.vl-name {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  flex: 1 1 16rem;
+}
+.vl-name a {
+  font-size: var(--fs-lead);
+  font-weight: 900;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+  text-decoration: none;
+}
+.vl-name a:hover {
+  color: var(--blue);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.vl-name .kicker {
+  font-size: var(--fs-micro);
+  font-weight: 700;
+  color: var(--muted);
+}
+.vl-flag {
+  justify-self: start;
+  font-size: var(--fs-micro);
+  font-weight: 700;
+  padding: 1px 8px;
+  border-radius: 4px;
+  background: var(--bad-soft);
+  color: var(--bad);
+}
+.vl-sum {
+  display: grid;
+  justify-items: end;
+  font-size: var(--fs-micro);
+  color: var(--muted);
+}
+.vl-sum b {
+  font-size: var(--fs-lead);
+  color: var(--ink);
+}
+.vl-engs {
+  display: grid;
+  gap: var(--sp-1);
+  margin: 0;
+  padding: 0 0 0 var(--sp-3);
+  list-style: none;
+  border-left: 2px solid var(--line);
+}
+.vl-eng {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 2px var(--sp-3);
+  align-items: center;
+  padding: var(--sp-1) 0;
+  font-size: var(--fs-small);
+}
+.vl-eng .what {
+  display: grid;
+  min-width: 0;
+  grid-column: 1 / -1;
+}
+.vl-eng .what a {
+  font-weight: 700;
+  color: var(--ink);
+}
+.vl-eng .role {
+  color: var(--muted);
+  font-size: var(--fs-micro);
+}
+.vl-eng .money {
+  font-weight: 700;
+}
+.vl-eng .verdict .none {
+  font-size: var(--fs-micro);
+  color: var(--muted);
+}
+.vl-search {
+  display: flex;
+  gap: var(--sp-1);
+}
+.vl-search input {
+  min-height: 44px;
+  min-width: 0;
+  width: 14rem;
+  padding: 0 14px;
+  border: 1px solid var(--bar);
+  border-radius: var(--r-md);
+  background: var(--paper);
+  color: var(--ink);
+  font: 500 var(--fs-small) var(--font-body);
+}
+.vl-search input:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: 1px;
+}
+.vl-search button {
+  min-height: 44px;
+  padding: 0 var(--sp-4);
+  border: 1px solid var(--ink);
+  border-radius: var(--r-md);
+  background: var(--ink);
+  color: var(--paper);
+  font: 700 var(--fs-small) var(--font-body);
+}
+
 @media (min-width: 720px) {
+  .vl-eng {
+    grid-template-columns: minmax(0, 1fr) 7rem 6rem 8rem;
+  }
+  .vl-eng .what {
+    grid-column: auto;
+  }
+  .vl-eng .money {
+    text-align: right;
+  }
   .prog-row {
     grid-template-columns:
-      56px minmax(0, 2.2fr) minmax(0, 1fr) minmax(0, 1.2fr)
-      110px;
+      minmax(0, 2.2fr) minmax(0, 1.3fr) minmax(0, 0.9fr) minmax(0, 1.2fr)
+      96px;
     gap: var(--sp-1) var(--sp-5);
   }
-  .prog-row .axis-ring {
-    grid-row: auto;
+  .prog-row .name {
+    grid-column: auto;
   }
   .prog-row .as-of {
     text-align: right;
@@ -360,8 +703,8 @@
   .prog-head {
     display: grid;
     grid-template-columns:
-      56px minmax(0, 2.2fr) minmax(0, 1fr) minmax(0, 1.2fr)
-      110px;
+      minmax(0, 2.2fr) minmax(0, 1.3fr) minmax(0, 0.9fr) minmax(0, 1.2fr)
+      96px;
     gap: var(--sp-5);
     padding-bottom: var(--sp-2);
     border-bottom: 1px solid var(--ink);

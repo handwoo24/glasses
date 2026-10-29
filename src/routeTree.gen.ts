@@ -11,9 +11,13 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as MethodRouteImport } from './routes/method'
+import { Route as OrgsIndexRouteImport } from './routes/orgs/index'
+import { Route as ProgramsIndexRouteImport } from './routes/programs/index'
 import { Route as ProgramsProgramIdRouteImport } from './routes/programs/$programId'
 import { Route as ReportsSlugRouteImport } from './routes/reports/$slug'
+import { Route as VendorsIndexRouteImport } from './routes/vendors/index'
 import { Route as VendorsBiznoRouteImport } from './routes/vendors/$bizno'
+import { Route as OrgsOrgIdIndexRouteImport } from './routes/orgs/$orgId/index'
 import { Route as OrgsOrgIdProgramsRouteImport } from './routes/orgs/$orgId/programs'
 import { Route as OrgsOrgIdBudgetsBudgetIdRouteImport } from './routes/orgs/$orgId/budgets/$budgetId'
 import { Route as ProgramsProgramIdVendorsBiznoRouteImport } from './routes/programs/$programId_.vendors.$bizno'
@@ -28,6 +32,16 @@ const MethodRoute = MethodRouteImport.update({
   path: '/method',
   getParentRoute: () => rootRouteImport,
 } as any)
+const OrgsIndexRoute = OrgsIndexRouteImport.update({
+  id: '/orgs/',
+  path: '/orgs/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProgramsIndexRoute = ProgramsIndexRouteImport.update({
+  id: '/programs/',
+  path: '/programs/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ProgramsProgramIdRoute = ProgramsProgramIdRouteImport.update({
   id: '/programs/$programId',
   path: '/programs/$programId',
@@ -38,9 +52,19 @@ const ReportsSlugRoute = ReportsSlugRouteImport.update({
   path: '/reports/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
+const VendorsIndexRoute = VendorsIndexRouteImport.update({
+  id: '/vendors/',
+  path: '/vendors/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const VendorsBiznoRoute = VendorsBiznoRouteImport.update({
   id: '/vendors/$bizno',
   path: '/vendors/$bizno',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OrgsOrgIdIndexRoute = OrgsOrgIdIndexRouteImport.update({
+  id: '/orgs/$orgId/',
+  path: '/orgs/$orgId/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const OrgsOrgIdProgramsRoute = OrgsOrgIdProgramsRouteImport.update({
@@ -67,7 +91,11 @@ export interface FileRoutesByFullPath {
   '/programs/$programId': typeof ProgramsProgramIdRoute
   '/reports/$slug': typeof ReportsSlugRoute
   '/vendors/$bizno': typeof VendorsBiznoRoute
+  '/orgs/': typeof OrgsIndexRoute
+  '/programs/': typeof ProgramsIndexRoute
+  '/vendors/': typeof VendorsIndexRoute
   '/orgs/$orgId/programs': typeof OrgsOrgIdProgramsRoute
+  '/orgs/$orgId/': typeof OrgsOrgIdIndexRoute
   '/orgs/$orgId/budgets/$budgetId': typeof OrgsOrgIdBudgetsBudgetIdRoute
   '/programs/$programId/vendors/$bizno': typeof ProgramsProgramIdVendorsBiznoRoute
 }
@@ -77,7 +105,11 @@ export interface FileRoutesByTo {
   '/programs/$programId': typeof ProgramsProgramIdRoute
   '/reports/$slug': typeof ReportsSlugRoute
   '/vendors/$bizno': typeof VendorsBiznoRoute
+  '/orgs': typeof OrgsIndexRoute
+  '/programs': typeof ProgramsIndexRoute
+  '/vendors': typeof VendorsIndexRoute
   '/orgs/$orgId/programs': typeof OrgsOrgIdProgramsRoute
+  '/orgs/$orgId': typeof OrgsOrgIdIndexRoute
   '/orgs/$orgId/budgets/$budgetId': typeof OrgsOrgIdBudgetsBudgetIdRoute
   '/programs/$programId/vendors/$bizno': typeof ProgramsProgramIdVendorsBiznoRoute
 }
@@ -88,7 +120,11 @@ export interface FileRoutesById {
   '/programs/$programId': typeof ProgramsProgramIdRoute
   '/reports/$slug': typeof ReportsSlugRoute
   '/vendors/$bizno': typeof VendorsBiznoRoute
+  '/orgs/': typeof OrgsIndexRoute
+  '/programs/': typeof ProgramsIndexRoute
+  '/vendors/': typeof VendorsIndexRoute
   '/orgs/$orgId/programs': typeof OrgsOrgIdProgramsRoute
+  '/orgs/$orgId/': typeof OrgsOrgIdIndexRoute
   '/orgs/$orgId/budgets/$budgetId': typeof OrgsOrgIdBudgetsBudgetIdRoute
   '/programs/$programId_/vendors/$bizno': typeof ProgramsProgramIdVendorsBiznoRoute
 }
@@ -100,7 +136,11 @@ export interface FileRouteTypes {
     | '/programs/$programId'
     | '/reports/$slug'
     | '/vendors/$bizno'
+    | '/orgs/'
+    | '/programs/'
+    | '/vendors/'
     | '/orgs/$orgId/programs'
+    | '/orgs/$orgId/'
     | '/orgs/$orgId/budgets/$budgetId'
     | '/programs/$programId/vendors/$bizno'
   fileRoutesByTo: FileRoutesByTo
@@ -110,7 +150,11 @@ export interface FileRouteTypes {
     | '/programs/$programId'
     | '/reports/$slug'
     | '/vendors/$bizno'
+    | '/orgs'
+    | '/programs'
+    | '/vendors'
     | '/orgs/$orgId/programs'
+    | '/orgs/$orgId'
     | '/orgs/$orgId/budgets/$budgetId'
     | '/programs/$programId/vendors/$bizno'
   id:
@@ -120,7 +164,11 @@ export interface FileRouteTypes {
     | '/programs/$programId'
     | '/reports/$slug'
     | '/vendors/$bizno'
+    | '/orgs/'
+    | '/programs/'
+    | '/vendors/'
     | '/orgs/$orgId/programs'
+    | '/orgs/$orgId/'
     | '/orgs/$orgId/budgets/$budgetId'
     | '/programs/$programId_/vendors/$bizno'
   fileRoutesById: FileRoutesById
@@ -131,7 +179,11 @@ export interface RootRouteChildren {
   ProgramsProgramIdRoute: typeof ProgramsProgramIdRoute
   ReportsSlugRoute: typeof ReportsSlugRoute
   VendorsBiznoRoute: typeof VendorsBiznoRoute
+  OrgsIndexRoute: typeof OrgsIndexRoute
+  ProgramsIndexRoute: typeof ProgramsIndexRoute
+  VendorsIndexRoute: typeof VendorsIndexRoute
   OrgsOrgIdProgramsRoute: typeof OrgsOrgIdProgramsRoute
+  OrgsOrgIdIndexRoute: typeof OrgsOrgIdIndexRoute
   OrgsOrgIdBudgetsBudgetIdRoute: typeof OrgsOrgIdBudgetsBudgetIdRoute
   ProgramsProgramIdVendorsBiznoRoute: typeof ProgramsProgramIdVendorsBiznoRoute
 }
@@ -152,6 +204,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MethodRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/orgs/': {
+      id: '/orgs/'
+      path: '/orgs'
+      fullPath: '/orgs/'
+      preLoaderRoute: typeof OrgsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/programs/': {
+      id: '/programs/'
+      path: '/programs'
+      fullPath: '/programs/'
+      preLoaderRoute: typeof ProgramsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/programs/$programId': {
       id: '/programs/$programId'
       path: '/programs/$programId'
@@ -166,11 +232,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ReportsSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/vendors/': {
+      id: '/vendors/'
+      path: '/vendors'
+      fullPath: '/vendors/'
+      preLoaderRoute: typeof VendorsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/vendors/$bizno': {
       id: '/vendors/$bizno'
       path: '/vendors/$bizno'
       fullPath: '/vendors/$bizno'
       preLoaderRoute: typeof VendorsBiznoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/orgs/$orgId/': {
+      id: '/orgs/$orgId/'
+      path: '/orgs/$orgId'
+      fullPath: '/orgs/$orgId/'
+      preLoaderRoute: typeof OrgsOrgIdIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/orgs/$orgId/programs': {
@@ -203,7 +283,11 @@ const rootRouteChildren: RootRouteChildren = {
   ProgramsProgramIdRoute: ProgramsProgramIdRoute,
   ReportsSlugRoute: ReportsSlugRoute,
   VendorsBiznoRoute: VendorsBiznoRoute,
+  OrgsIndexRoute: OrgsIndexRoute,
+  ProgramsIndexRoute: ProgramsIndexRoute,
+  VendorsIndexRoute: VendorsIndexRoute,
   OrgsOrgIdProgramsRoute: OrgsOrgIdProgramsRoute,
+  OrgsOrgIdIndexRoute: OrgsOrgIdIndexRoute,
   OrgsOrgIdBudgetsBudgetIdRoute: OrgsOrgIdBudgetsBudgetIdRoute,
   ProgramsProgramIdVendorsBiznoRoute: ProgramsProgramIdVendorsBiznoRoute,
 }

@@ -15,6 +15,7 @@ import { readVendorWorklist } from '#/pipeline/vendor-worklist'
 
 const USAGE = `사용법: npm run pipeline -- <명령>
   put <문서 경로> <파일.yaml|.json|.md> [--status draft|in-review|published]
+  put-many <파일.jsonl>          한 줄에 {"path": 문서 경로, "value": 값} 하나. 양식·참조 검사는 put과 같다
   get <문서 경로>
   ls <컬렉션 경로>
   enqueue <단계> [평가 대상 경로] [--input <경로> ...]
@@ -79,6 +80,50 @@ function notInFuture(value: unknown, field: string): void {
     )
 }
 
+/** put-many에서 한꺼번에 쓰는 문서 수. 참조 검사 읽기와 쓰기가 몰리지 않게 */
+const PUT_CONCURRENCY = 16
+
+/** 예산 카탈로그처럼 수천 건을 쓸 때. 틀린 줄은 건너뛰지 않고 모두 모아 알린다 */
+async function putMany(file: string) {
+  const entries = readFileSync(file, 'utf8')
+    .split('\n')
+    .filter((l) => l.trim())
+    .map((l, i) => {
+      const { path, value } = JSON.parse(l) as {
+        path?: unknown
+        value?: unknown
+      }
+      if (typeof path !== 'string')
+        throw new Error(`${i + 1}번째 줄에 path가 없다`)
+      return { path, value }
+    })
+  // 같은 경로가 두 번 있으면 동시에 쓰는 순서에 따라 어느 값이 남을지 모른다
+  const seen = new Set<string>()
+  for (const { path } of entries) {
+    if (seen.has(path)) throw new Error(`같은 경로가 두 번 있다: ${path}`)
+    seen.add(path)
+  }
+  const failed: Array<{ path: string; error: string }> = []
+  let next = 0
+  const worker = async () => {
+    while (next < entries.length) {
+      const { path, value } = entries[next++]
+      try {
+        await put(path, value)
+      } catch (e) {
+        failed.push({ path, error: e instanceof Error ? e.message : String(e) })
+      }
+    }
+  }
+  await Promise.all(Array.from({ length: PUT_CONCURRENCY }, worker))
+  if (failed.length) process.exitCode = 1
+  return {
+    ok: failed.length === 0,
+    written: entries.length - failed.length,
+    failed,
+  }
+}
+
 function stage(value: string | undefined): Stage {
   if (!(STAGES as ReadonlyArray<string>).includes(value ?? ''))
     throw new Error(`단계는 ${STAGES.join(', ')} 중 하나`)
@@ -102,6 +147,10 @@ async function run(argv: ReadonlyArray<string>): Promise<void> {
       if (a.includes('/reviews/')) notInFuture(value, 'reviewedAt')
       await put(a, value)
       return print({ ok: true, path: a })
+    }
+    case 'put-many': {
+      if (!a) throw new Error(USAGE)
+      return print(await putMany(a))
     }
     case 'get':
       return print(orNull(await get(a)))

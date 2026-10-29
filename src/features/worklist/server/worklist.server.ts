@@ -2,7 +2,6 @@
 import type { DocumentSnapshot } from 'firebase-admin/firestore'
 import type { ZodType } from 'zod'
 import {
-  BudgetLineSchema,
   OrgSchema,
   ProgramSchema,
   PublishedSchema,
@@ -18,6 +17,12 @@ import {
   publishedSummaries,
 } from '#/features/reports/server/report-docs.server'
 import type { ReportSummary } from '#/features/reports/summary'
+import {
+  linesByCode,
+  orgCatalog,
+} from '#/features/directory/server/catalog.server'
+import { vendorVerdict } from '#/features/vendors/list'
+import type { Engagement, VendorListItem } from '#/features/vendors/list'
 import { stageOf } from '../stage'
 import type { WorkStage, SubjectProgress } from '../stage'
 
@@ -86,14 +91,6 @@ function group<T>(
   return out
 }
 
-const LineFields = BudgetLineSchema.pick({
-  code: true,
-  org: true,
-  year: true,
-  amounts: true,
-  asOf: true,
-})
-
 /**
  * 양식이 맞지 않는 문서 하나가 모든 기관의 목록을 막지 않게 건너뛴다.
  * 쓰기는 파이프라인 도구가 양식을 검사하므로 여기서 걸리는 것은 손으로 고친 문서뿐이다
@@ -110,7 +107,6 @@ async function readAll() {
   const [
     orgs,
     programs,
-    lines,
     materials,
     facts,
     absences,
@@ -123,10 +119,6 @@ async function readAll() {
   ] = await Promise.all([
     store.collection('orgs').get(),
     store.collection('programs').get(),
-    store
-      .collection('budgetLines')
-      .select('code', 'org', 'year', 'amounts', 'asOf')
-      .get(),
     store.collection('materials').select('subjects').get(),
     store.collectionGroup('facts').select().get(),
     store.collectionGroup('absences').select().get(),
@@ -141,6 +133,11 @@ async function readAll() {
     store.collection('publishedVendors').get(),
     store.collection('vendors').get(),
   ])
+  const cards = programs.docs.flatMap((d) =>
+    parsed(ProgramSchema, d).map((p) => ({ id: d.id, ...p })),
+  )
+  // 카탈로그는 전체를 읽지 않고 사업 카드가 가리키는 세부사업만
+  const lines = await linesByCode(cards.flatMap((p) => p.budgetLines))
   const materialCount = new Map<string, number>()
   for (const d of materials.docs)
     for (const s of (d.get('subjects') as Array<string> | undefined) ?? [])
@@ -151,10 +148,8 @@ async function readAll() {
         parsed(OrgSchema, d).map((o) => [d.id, o] as const),
       ),
     ),
-    programs: programs.docs.flatMap((d) =>
-      parsed(ProgramSchema, d).map((p) => ({ id: d.id, ...p })),
-    ),
-    lines: lines.docs.map((d) => LineFields.parse(d.data())),
+    programs: cards,
+    lines,
     materialCount,
     facts: group(facts.docs, () => 1),
     absences: group(absences.docs, () => 1),
@@ -269,23 +264,6 @@ function sumBudget(
   }
 }
 
-function catalogOf(
-  lines: ReadonlyArray<{ year: number; asOf: string }>,
-): OrgWorklist['catalog'] {
-  if (!lines.length) return null
-  const year = Math.max(...lines.map((l) => l.year))
-  const same = lines.filter((l) => l.year === year)
-  return {
-    year,
-    lines: same.length,
-    asOf:
-      same
-        .map((l) => l.asOf)
-        .sort()
-        .at(-1) ?? '',
-  }
-}
-
 /** 기관 하나의 사업 카드와 각 사업의 작업 단계. 기관이 레지스트리에 없으면 null */
 export async function readOrgWorklist(
   orgId: string,
@@ -293,6 +271,7 @@ export async function readOrgWorklist(
   const [all, summaries] = await Promise.all([snapshot(), publishedSummaries()])
   const org = all.orgs.get(orgId)
   if (!org) return null
+  const catalog = await orgCatalog(orgId)
   const orgLines = all.lines.filter((l) => l.org === orgId)
   const budgets = latestBudgets(orgLines)
   const bySubject = new Map(
@@ -334,7 +313,11 @@ export async function readOrgWorklist(
       parent: org.parent,
       parentName: org.parent ? all.orgs.get(org.parent)?.name : undefined,
     },
-    catalog: catalogOf(orgLines),
+    catalog: catalog && {
+      year: catalog.year,
+      lines: catalog.lines,
+      asOf: catalog.asOf,
+    },
     items,
   }
 }
@@ -394,4 +377,54 @@ export async function readVendorPage(
     registry: all.vendorRegistry.get(bizno) ?? null,
     engagements,
   }
+}
+
+/** 용역 탭: 평가 대상 사업에 업체 카드가 있는 업체 전체. 사업자등록번호 하나가 한 줄 */
+export async function readVendorList(): Promise<{
+  items: Array<VendorListItem>
+  orgs: Array<{ id: string; name: string; region?: string }>
+}> {
+  const all = await snapshot()
+  const programs = new Map(all.programs.map((p) => [`programs/${p.id}`, p]))
+  const byBizno = new Map<string, Array<Engagement>>()
+  const names = new Map<string, string>()
+  for (const { program, bizno, card } of all.vendorCards) {
+    const p = programs.get(program)
+    const org = p ? all.orgs.get(p.org) : undefined
+    const path = `${program}/vendors/${bizno}`
+    const summary = all.publishedVendors.get(path)?.summary ?? null
+    const e: Engagement = {
+      program,
+      programName: p?.name ?? program,
+      org: p?.org ?? '',
+      orgName: org?.name ?? '',
+      region: p?.region ?? org?.region,
+      role: card.role,
+      amount: card.contracts.reduce((s, c) => s + c.amount, 0),
+      contracts: card.contracts.length,
+      stage: stageOf(progressOf(all, path)),
+      summary,
+      verdict: summary ? vendorVerdict(summary) : null,
+    }
+    byBizno.set(bizno, [...(byBizno.get(bizno) ?? []), e])
+    names.set(bizno, card.name)
+  }
+  const items = [...byBizno].map(([bizno, engagements]): VendorListItem => {
+    const reg = all.vendorRegistry.get(bizno)
+    return {
+      bizno,
+      name: reg?.name ?? names.get(bizno) ?? bizno,
+      type: reg?.type,
+      home: reg?.region,
+      sanctions: reg?.sanctions,
+      engagements: [...engagements].sort((a, b) => b.amount - a.amount),
+      amount: engagements.reduce((s, e) => s + e.amount, 0),
+    }
+  })
+  const orgIds = new Set(items.flatMap((v) => v.engagements.map((e) => e.org)))
+  const orgs = [...orgIds].flatMap((id) => {
+    const o = all.orgs.get(id)
+    return o ? [{ id, name: o.name, region: o.region }] : []
+  })
+  return { items, orgs }
 }

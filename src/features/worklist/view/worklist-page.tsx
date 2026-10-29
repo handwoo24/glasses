@@ -18,6 +18,8 @@ import {
 } from '../list'
 import type { DeptGroup, Sort, WorklistSearch } from '../list'
 import type { OrgWorklist, WorkItem } from '../server/worklist.server'
+import { CENTRAL_TYPES } from '#/pipeline/schemas'
+import { criteriaOf } from '../criteria'
 import { VendorRows } from './vendor-rows'
 import { NEXT_STEP, WORK_STAGES } from '../stage'
 import type { WorkStage } from '../stage'
@@ -49,6 +51,7 @@ interface WorklistPageProps {
 
 export function WorklistPage({ data, search }: WorklistPageProps) {
   const { org, catalog, items } = data
+  const criteria = criteriaOf(org.type)
   const deptScope = filterItems(items, { dept: search.dept })
   const counts = stageCounts(deptScope)
   const rows = filterItems(items, search)
@@ -61,15 +64,19 @@ export function WorklistPage({ data, search }: WorklistPageProps) {
       <div className="wl">
         <div className="wl-top">
           <nav aria-label="경로" className="wl-crumb">
-            <Link to="/">전국</Link>
-            {org.parentName && (
+            <Link to="/orgs">전국</Link>
+            {org.parent && org.parentName && (
               <>
                 <span aria-hidden="true">›</span>
-                <span>{org.parentName}</span>
+                <Link to="/orgs/$orgId" params={{ orgId: org.parent }}>
+                  {org.parentName}
+                </Link>
               </>
             )}
             <span aria-hidden="true">›</span>
-            <span>{org.name}</span>
+            <Link to="/orgs/$orgId" params={{ orgId: org.id }}>
+              {org.name}
+            </Link>
           </nav>
           <p className="wl-chips">
             <span className="on">{org.type}</span>
@@ -80,7 +87,7 @@ export function WorklistPage({ data, search }: WorklistPageProps) {
           <p className="wl-meta">
             평가 대상 {items.length}개
             {catalog &&
-              ` · ${catalog.year}년 세부사업 ${catalog.lines.toLocaleString('ko-KR')}건 중 · 지방재정365 ${dotDate(catalog.asOf)} 기준`}
+              ` · ${catalog.year}년 세부사업 ${catalog.lines.toLocaleString('ko-KR')}건 중 · ${CENTRAL_TYPES.has(org.type) ? '열린재정' : '지방재정365'} ${dotDate(catalog.asOf)} 기준`}
           </p>
         </div>
 
@@ -116,16 +123,11 @@ export function WorklistPage({ data, search }: WorklistPageProps) {
             <h2 id="wl-why" className="wl-k">
               평가 대상을 고른 기준
             </h2>
-            <p className="lead">
-              시가 정하고 시 예산으로 하는 10억 원 이상 사업
-            </p>
+            <p className="lead">{criteria.lead}</p>
             <ul>
-              <li>
-                국비·도비가 절반 넘는 국가 제도(기초연금·보육료 등)는 중앙
-                사업으로 따로 봅니다
-              </li>
-              <li>국비 공모로 시가 짓는 시설은 넣었습니다</li>
-              <li>공원 유지관리·청사 관리 같은 일상 운영비는 뺐습니다</li>
+              {criteria.notes.map((n) => (
+                <li key={n}>{n}</li>
+              ))}
             </ul>
           </section>
         </div>
@@ -367,8 +369,8 @@ function ItemList({
           단계 옆 진행 막대: 수집 → 분석 → 작성 → 검증 → 게시. 점선 칩은 아직
           시작하지 않은 사업이고, 게시한 사업은 사업 이름 아래에 7개 축 요약이
           붙습니다. 게시한 사업 아래에는 참여 업체와 업체 리포트 단계가
-          붙습니다. 집행률은 지방재정365 조회일 기준이라 연말 전에는 낮을 수
-          있고, 낮다고 문제라는 뜻은 아닙니다.
+          붙습니다. 집행률은 지방재정365·열린재정 조회일 기준이라 연말 전에는
+          낮을 수 있고, 낮다고 문제라는 뜻은 아닙니다.
         </span>
         {rows.length > limit && (
           <button type="button" onClick={() => setLimit((n) => n + PAGE)}>
