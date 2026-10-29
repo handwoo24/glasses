@@ -1,10 +1,10 @@
+import { useSuspenseQuery } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
 import { z } from 'zod'
-import {
-  fetchMinistries,
-  fetchRegion,
-} from '#/features/directory/server/directory.functions'
+import { ministriesQuery, regionQuery } from '#/features/directory/queries'
 import { MinistriesPage, RegionPage } from '#/features/directory/view/orgs-page'
+
+const MINISTRIES_TITLE = '부처 · glasses'
 
 /** 지역 탭 /orgs?view=regions&sido=41 · 부처 탭 /orgs?view=ministries */
 export const Route = createFileRoute('/orgs/')({
@@ -18,21 +18,18 @@ export const Route = createFileRoute('/orgs/')({
       .catch(undefined),
   }),
   loaderDeps: ({ search }) => ({ view: search.view, sido: search.sido }),
-  loader: async ({ deps }) =>
-    deps.view === 'ministries'
-      ? { kind: 'ministries' as const, ministries: await fetchMinistries() }
-      : {
-          kind: 'regions' as const,
-          region: await fetchRegion({ data: { sido: deps.sido } }),
-        },
+  // head에 쓸 제목만 돌려준다
+  loader: async ({ context: { queryClient }, deps }) => {
+    if (deps.view === 'ministries') {
+      await queryClient.query(ministriesQuery())
+      return { title: MINISTRIES_TITLE }
+    }
+    const region = await queryClient.query(regionQuery(deps.sido))
+    return { title: `${region.panel.name} · glasses` }
+  },
   head: ({ loaderData }) => ({
     meta: [
-      {
-        title:
-          loaderData?.kind === 'regions'
-            ? `${loaderData.region.panel.name} · glasses`
-            : '부처 · glasses',
-      },
+      { title: loaderData?.title ?? MINISTRIES_TITLE },
       {
         name: 'description',
         content: '중앙 부처와 지자체별 glasses 평가 현황과 평가 대상 사업',
@@ -43,10 +40,16 @@ export const Route = createFileRoute('/orgs/')({
 })
 
 function Orgs() {
-  const data = Route.useLoaderData()
-  return data.kind === 'ministries' ? (
-    <MinistriesPage ministries={data.ministries} />
-  ) : (
-    <RegionPage data={data.region} />
-  )
+  const { view, sido } = Route.useLoaderDeps()
+  return view === 'ministries' ? <Ministries /> : <Region sido={sido} />
+}
+
+function Ministries() {
+  const { data } = useSuspenseQuery(ministriesQuery())
+  return <MinistriesPage ministries={data} />
+}
+
+function Region({ sido }: { sido?: string }) {
+  const { data } = useSuspenseQuery(regionQuery(sido))
+  return <RegionPage data={data} />
 }

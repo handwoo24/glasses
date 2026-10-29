@@ -1,7 +1,18 @@
-// 리포트 라우트(/programs/… · /orgs/…/budgets/…)가 같이 쓰는 것: 머리 메타, 찾을 수 없음 화면.
+// 리포트 라우트(/programs/… · /orgs/…/budgets/… · 업체 리포트)가 같이 쓰는 것: 머리 메타, 찾을 수 없음 화면.
 import type { ReportDoc } from '../report-doc'
 
-export function reportHead(doc: ReportDoc | undefined) {
+export type HeadFields = Pick<ReportDoc, 'title' | 'project' | 'description'>
+
+/** 로더가 돌려줄 머리 메타 재료. 원문 전체를 loaderData에 싣지 않으려고 세 필드만 */
+export function headFields(doc: HeadFields): HeadFields {
+  return {
+    title: doc.title,
+    project: doc.project,
+    description: doc.description,
+  }
+}
+
+export function reportHead(doc: HeadFields | undefined) {
   return {
     meta: doc
       ? [

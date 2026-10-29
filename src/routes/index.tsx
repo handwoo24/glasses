@@ -1,6 +1,7 @@
+import { useSuspenseQuery } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
 import { z } from 'zod'
-import { fetchHome } from '#/features/directory/server/directory.functions'
+import { homeQuery } from '#/features/directory/queries'
 import { HomePage } from '#/features/directory/view/home-page'
 import { ORG_ID } from '#/pipeline/schemas'
 
@@ -21,15 +22,17 @@ export const Route = createFileRoute('/')({
     ministry: search.ministry,
   }),
   // 오늘은 로더에서 한 번 정한다. 서버가 그린 화면과 브라우저가 같은 ‘다음 판단’을 쓴다
-  loader: async ({ deps }) => ({
-    data: await fetchHome({ data: deps }),
-    today: new Date().toLocaleDateString('sv-SE'),
-  }),
+  loader: async ({ context, deps }) => {
+    await context.queryClient.query(homeQuery(deps.sido, deps.ministry))
+    return { today: new Date().toLocaleDateString('sv-SE') }
+  },
   component: Home,
 })
 
 function Home() {
-  const { data, today } = Route.useLoaderData()
+  const { sido, ministry } = Route.useLoaderDeps()
+  const { data } = useSuspenseQuery(homeQuery(sido, ministry))
+  const { today } = Route.useLoaderData()
   const { view } = Route.useSearch()
   return <HomePage data={data} view={view ?? 'regions'} today={today} />
 }
