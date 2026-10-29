@@ -1,0 +1,23 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "budgetLines",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "org",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "year",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "amounts.`예산현액`",
+          "order": "ASCENDING"
+        }
+      ]
+    }
+  ],
+  "fieldOverrides": []
+}

@@ -95,12 +95,20 @@ function SiteHeader() {
           <span>공공사업 리포트</span>
         </Link>
         <nav aria-label="주 메뉴" className="site-nav">
-          <Link to="/" activeOptions={{ exact: true }}>
-            리포트
+          <Link to="/programs">사업</Link>
+          <Link
+            to="/orgs"
+            search={{ view: 'ministries' }}
+            activeOptions={{ includeSearch: true }}
+          >
+            부처
           </Link>
-          {/* 사업 카드가 있는 기관이 고양시 하나라 바로 보낸다. 기관이 늘면 기관 고르는 화면으로 */}
-          <Link to="/orgs/$orgId/programs" params={{ orgId: '3940000' }}>
-            작업 현황
+          <Link
+            to="/orgs"
+            search={{ view: 'regions' }}
+            activeOptions={{ includeSearch: true }}
+          >
+            지역
           </Link>
           <Link to="/method">평가 기준</Link>
         </nav>
