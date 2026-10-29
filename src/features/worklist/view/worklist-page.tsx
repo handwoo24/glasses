@@ -14,9 +14,11 @@ import {
   spentRate,
   stageCounts,
   stageTone,
+  vendorStats,
 } from '../list'
 import type { DeptGroup, Sort, WorklistSearch } from '../list'
 import type { OrgWorklist, WorkItem } from '../server/worklist.server'
+import { VendorRows } from './vendor-rows'
 import { NEXT_STEP, WORK_STAGES } from '../stage'
 import type { WorkStage } from '../stage'
 
@@ -103,6 +105,7 @@ export function WorklistPage({ data, search }: WorklistPageProps) {
                 />
               ))}
             </div>
+            <VendorStat items={deptScope} />
             <p className="wl-note">
               단계는 사람이 적지 않습니다. 모은 자료, 사실 원장, 리포트 초안,
               검증 기록이 남으면 그에 따라 정해집니다. 검증은 리포트를 쓴 세션과
@@ -138,7 +141,11 @@ export function WorklistPage({ data, search }: WorklistPageProps) {
             </span>
           </div>
           <Filters data={data} search={search} />
-          <ItemList key={JSON.stringify(search)} rows={rows} />
+          <ItemList
+            key={JSON.stringify(search)}
+            rows={rows}
+            vendorsOpen={search.vendors !== 'closed'}
+          />
         </section>
 
         <DeptSection items={items} orgId={org.id} search={search} />
@@ -147,7 +154,29 @@ export function WorklistPage({ data, search }: WorklistPageProps) {
   )
 }
 
-function dotDate(iso: string): string {
+/** 업체 리포트 작업 현황: 게시된 사업의 참여 업체와 목록화가 남은 사업 */
+function VendorStat({ items }: { items: ReadonlyArray<WorkItem> }) {
+  const v = vendorStats(items)
+  if (!v.cards && !v.toList.length) return null
+  return (
+    <div className="wl-vstat">
+      <p className="wl-k">업체 리포트 · 게시된 사업의 참여 업체</p>
+      <p className="wl-big small">
+        <b>{v.published}장 게시</b>
+        <span>
+          카드 {v.cards} · 고침 {v.fix} · 작업 중 {v.working} · 대기 {v.waiting}
+        </span>
+      </p>
+      {v.toList.length > 0 && (
+        <p className="wl-vtodo">
+          업체 목록화가 남은 사업 {v.toList.length} · {v.toList.join(', ')}
+        </p>
+      )}
+    </div>
+  )
+}
+
+export function dotDate(iso: string): string {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(iso)) return iso
   const [y, m, d] = iso.split('-').map(Number)
   return `${y}. ${m}. ${d}.`
@@ -221,6 +250,18 @@ function Filters({ data, search }: WorklistPageProps) {
         )}
         wide
       />
+      <FilterSelect
+        id="wl-vendors"
+        label="업체 줄"
+        value={search.vendors ?? 'open'}
+        search={search}
+        field="vendors"
+        options={[
+          ['open', '펼치기'],
+          ['closed', '접기'],
+        ]}
+      />
+      <VendorWorkToggle search={search} />
     </form>
   )
 }
@@ -267,6 +308,23 @@ function FilterSelect({
   )
 }
 
+function VendorWorkToggle({ search }: { search: WorklistSearch }) {
+  const setSearch = useSetSearch()
+  return (
+    <div className="wl-f wl-check">
+      <input
+        id="wl-vendor-work"
+        type="checkbox"
+        checked={search.vendorWork ?? false}
+        onChange={(e) =>
+          setSearch({ ...search, vendorWork: e.target.checked || undefined })
+        }
+      />
+      <label htmlFor="wl-vendor-work">업체 작업이 남은 사업만</label>
+    </div>
+  )
+}
+
 /** 필터 변경은 같은 주소의 검색 조건만 바꾼다 */
 function useSetSearch() {
   const navigate = useNavigate()
@@ -274,7 +332,13 @@ function useSetSearch() {
     navigate({ to: '.', search, replace: true })
 }
 
-function ItemList({ rows }: { rows: ReadonlyArray<WorkItem> }) {
+function ItemList({
+  rows,
+  vendorsOpen,
+}: {
+  rows: ReadonlyArray<WorkItem>
+  vendorsOpen: boolean
+}) {
   const [limit, setLimit] = useState(PAGE)
   if (!rows.length)
     return (
@@ -294,6 +358,7 @@ function ItemList({ rows }: { rows: ReadonlyArray<WorkItem> }) {
         {rows.slice(0, limit).map((i) => (
           <li key={i.id}>
             <Row item={i} />
+            {vendorsOpen && <VendorRows item={i} />}
           </li>
         ))}
       </ol>
@@ -301,6 +366,7 @@ function ItemList({ rows }: { rows: ReadonlyArray<WorkItem> }) {
         <span>
           단계 옆 진행 막대: 수집 → 분석 → 작성 → 검증 → 게시. 점선 칩은 아직
           시작하지 않은 사업이고, 게시한 사업은 사업 이름 아래에 7개 축 요약이
+          붙습니다. 게시한 사업 아래에는 참여 업체와 업체 리포트 단계가
           붙습니다. 집행률은 지방재정365 조회일 기준이라 연말 전에는 낮을 수
           있고, 낮다고 문제라는 뜻은 아닙니다.
         </span>

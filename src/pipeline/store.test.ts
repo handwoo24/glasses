@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs'
 import { afterAll, describe, expect, test } from 'vitest'
 import { claim, done, enqueue, fail } from './queue'
 import { db, get, put } from './store'
+import { readVendorWorklist } from './vendor-worklist'
 
 const RUN = Date.now().toString(36)
 const ORG = `alio-test${RUN}`
@@ -11,6 +12,8 @@ const MATERIAL = `m-${RUN.padStart(12, '0')
   .slice(-12)
   .replace(/[^0-9a-f]/g, 'a')}`
 const REPORT = `${PROGRAM}/reports/2026-10-27`
+/** 업체 레지스트리는 최상위 문서라 실행마다 다른 번호를 쓴다 */
+const BIZNO = String(Date.now()).slice(-10)
 const today = '2026-10-28'
 const now = '2026-10-28T10:00:00+09:00'
 // 실제 게시 주소와 겹치지 않게 slug를 실행마다 바꾼다
@@ -68,6 +71,8 @@ afterAll(async () => {
     `orgs/${ORG}`,
     `materials/${MATERIAL}`,
     `published/test-${RUN}`,
+    `publishedVendors/test-${RUN}`,
+    `vendors/${BIZNO}`,
   ])
     await store.recursiveDelete(store.doc(path))
   const tasks = await store
@@ -158,6 +163,102 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST)(
           subject: `orgs/${ORG}/budgets/2026-original`,
         }),
       ).rejects.toThrow('게시할 리포트는')
+    })
+
+    test('업체 카드는 사업과 업체 레지스트리가 있어야 쓴다', async () => {
+      const bizno = BIZNO
+      const card = `${PROGRAM}/vendors/${bizno}`
+      const vendorCard = {
+        name: '테스트 업체',
+        role: '테스트 유지보수',
+        contracts: [
+          {
+            name: '테스트 용역',
+            no: 'T-1',
+            amount: 100_000_000,
+            from: '2026-01-01',
+            to: '2026-12-31',
+            kind: '용역',
+          },
+        ],
+        priority: { score: 'low', why: '테스트' },
+        updatedAt: today,
+      }
+      await expect(put(card, vendorCard)).rejects.toThrow(
+        '업체 레지스트리 먼저',
+      )
+      await put(`vendors/${bizno}`, {
+        name: '테스트 업체',
+        type: '법인',
+        updatedAt: today,
+      })
+      await put(card, vendorCard)
+
+      // 업체 평가 대상의 계산된 사실은 사업 쪽 사실을 경로로 가리킨다
+      const derived = {
+        claim: '사업 쪽 금액의 두 배',
+        kind: '수치',
+        derivedFrom: [`${PROGRAM}/facts/f1`],
+        formula: 'f1 * 2',
+        recordedAt: today,
+      }
+      await put(`${card}/facts/f1`, derived)
+      await expect(
+        put(`${card}/facts/f2`, {
+          ...derived,
+          derivedFrom: [`${PROGRAM}/facts/f99`],
+        }),
+      ).rejects.toThrow('근거 사실 먼저')
+
+      // 업체 평가 대상의 리포트는 업체 리포트 양식으로 검사한다
+      const samsung = readFileSync(
+        'src/features/vendors/doc/__fixtures__/samsung-tng.md',
+        'utf8',
+      ).replace(
+        'slug: samsung-tng-smartcity-center-maintenance',
+        `slug: test-${RUN}`,
+      )
+      const vendorMd = samsung
+        .replace(
+          'program: programs/3940000.autonomous-bus',
+          `program: ${PROGRAM}`,
+        )
+        .replace(
+          'bizno: 109-86-28406',
+          `bizno: ${bizno.slice(0, 3)}-${bizno.slice(3, 5)}-${bizno.slice(5)}`,
+        )
+      const vendorReport = `${card}/reports/2026-10-29`
+      await expect(put(vendorReport, record(md))).rejects.toThrow('머리말')
+      // 다른 업체의 리포트를 이 업체 경로에 쓰지 않는다
+      await expect(put(vendorReport, record(samsung))).rejects.toThrow(
+        '저장 경로',
+      )
+      await put(vendorReport, record(vendorMd, 'published'))
+      const published = {
+        report: vendorReport,
+        subject: card,
+        publishedAt: now,
+      }
+      await expect(
+        put(`publishedVendors/other-${RUN}`, published),
+      ).rejects.toThrow('머리말의 slug')
+      await put(`publishedVendors/test-${RUN}`, published)
+      const saved = (await get(`publishedVendors/test-${RUN}`)) as {
+        summary?: { vendor: string; axes: Record<string, { evidence: string }> }
+      }
+      expect(saved.summary?.vendor).toBe('주식회사 삼성티엔지')
+      expect(saved.summary?.axes.output.evidence).toBe('thin')
+
+      // 업체 루프 조사 목록: 게시한 사업은 목록화가 남았고, 카드의 단계는 산출물로 계산한다
+      const work = await readVendorWorklist(ORG)
+      expect(work.toList).toEqual([PROGRAM])
+      expect(work.vendors).toEqual([
+        expect.objectContaining({
+          path: card,
+          stage: '게시',
+          amount: 100_000_000,
+        }),
+      ])
     })
   },
 )

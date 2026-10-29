@@ -9,6 +9,16 @@ describe('문장 규칙', () => {
     expect(lintReportDoc(loadReportDoc(src))).toEqual([])
   })
 
+  test('판정 문단이 있는 옛 판은 읽지만 문장 규칙에 걸린다', () => {
+    const old = md.replace(
+      '## 종합 판정\n\n',
+      '## 종합 판정\n\n버스 2대가 운행을 시작했습니다.\n\n',
+    )
+    const doc = loadReportDoc(old)
+    expect(doc.verdict).toBe('버스 2대가 운행을 시작했습니다.')
+    expect(lintReportDoc(doc).join('\n')).toContain('판정 문단을 쓰지 않는다')
+  })
+
   test.each([
     [
       '판단이 섞인 말',

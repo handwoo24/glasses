@@ -102,7 +102,10 @@ function sectionMap(sections: ReadonlyArray<Section>): Map<Key, Section> {
 }
 
 /** 본문에 쓴 출처 [sN]이 모두 출처 표에 있는지. 코드 블록(청구 문구 등) 안은 출처가 아니다 */
-function checkCites(body: string, sourceIds: ReadonlyArray<string>): void {
+export function checkCites(
+  body: string,
+  sourceIds: ReadonlyArray<string>,
+): void {
   const known = new Set(sourceIds)
   const prose = body.replace(/^```[^\n]*\n[\s\S]*?^```$/gm, '')
   const unknown = [
@@ -174,7 +177,7 @@ function readReportDoc(src: string): ReportDoc {
     const sec = s.get(k)
     return sec && fn(sec)
   }
-  const { verdict, nextDates } = parseVerdict(get('verdict'))
+  const { verdict, nextDates } = parseVerdict(get('verdict'), true)
   const { request, moreActions } = parseActions(get('actions'))
   const actions = {
     request,

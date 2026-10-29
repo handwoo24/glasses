@@ -9,9 +9,13 @@ import { loadReportDoc } from '#/features/reports/doc/load'
 import { lintReportDoc } from '#/features/reports/doc/lint'
 import { toSummary } from '#/features/reports/summary'
 import type { ReportSummary } from '#/features/reports/summary'
+import { lintVendorDoc } from '#/features/vendors/doc/lint'
+import { loadVendorDoc } from '#/features/vendors/doc/load'
+import { toVendorSummary } from '#/features/vendors/summary'
+import type { VendorSummary } from '#/features/vendors/summary'
 import { isCollection, resolve } from './paths'
 import type { Kind } from './paths'
-import { ReportRecordSchema } from './schemas'
+import { ReportRecordSchema, VENDOR_SUBJECT_PATH } from './schemas'
 
 const DEFAULT_PROJECT = 'demo-glasses'
 /**
@@ -68,9 +72,26 @@ async function mustExist(store: Firestore, path: string, why: string) {
     throw new Error(`${why}: ${path} 이 없다`)
 }
 
-/** 리포트는 리포트 문서 양식과 문장 규칙을 통과해야 쓴다 */
-function checkReport(markdown: string): void {
-  const problems = lintReportDoc(loadReportDoc(markdown))
+/** 업체 리포트 머리말의 사업·사업자등록번호가 저장 경로와 같은지 */
+export function checkVendorDocPath(
+  doc: { program: string; bizno: string },
+  subject: string,
+): void {
+  const [program, bizno] = subject.split('/vendors/')
+  if (doc.program !== program || doc.bizno.replaceAll('-', '') !== bizno)
+    throw new Error(
+      `업체 리포트 머리말(${doc.program}, ${doc.bizno})이 저장 경로(${subject})와 다르다`,
+    )
+}
+
+/** 리포트는 리포트 문서 양식과 문장 규칙을 통과해야 쓴다. 업체 평가 대상이면 업체 리포트 양식 */
+function checkReport(markdown: string, subject: string | undefined): void {
+  let problems: Array<string>
+  if (subject && VENDOR_SUBJECT_PATH.test(subject)) {
+    const doc = loadVendorDoc(markdown)
+    checkVendorDocPath(doc, subject)
+    problems = lintVendorDoc(doc)
+  } else problems = lintReportDoc(loadReportDoc(markdown))
   if (problems.length)
     throw new Error(`리포트 문장 규칙 위반:\n  ${problems.join('\n  ')}`)
 }
@@ -98,9 +119,39 @@ async function checkPublished(
   return toSummary({ ...doc, subject: String(data.subject) })
 }
 
+/** 업체 게시 문서가 가리키는 업체 리포트를 검사하고, 목록용 요약을 돌려준다 */
+async function checkPublishedVendor(
+  store: Firestore,
+  slug: string,
+  data: Record<string, unknown>,
+): Promise<VendorSummary> {
+  const report = String(data.report)
+  const { kind, parent } = resolve(report)
+  if (kind !== 'report' || parent !== data.subject)
+    throw new Error(`게시할 리포트는 ${String(data.subject)}/reports/{기준일}`)
+  const snap = await store.doc(report).get()
+  if (!snap.exists) throw new Error(`게시할 리포트가 없다: ${report}`)
+  const record = ReportRecordSchema.parse(snap.data())
+  if (record.status !== 'published')
+    throw new Error(`status가 published인 리포트만 게시한다: ${report}`)
+  const doc = loadVendorDoc(record.markdown)
+  checkVendorDocPath(doc, String(data.subject))
+  if (doc.slug !== slug)
+    throw new Error(
+      `게시 주소(${slug})와 리포트 머리말의 slug(${doc.slug})가 다르다`,
+    )
+  return toVendorSummary({ ...doc, subject: String(data.subject) })
+}
+
+/** 근거 사실: 같은 평가 대상의 f{n}이면 그 아래에서, 경로면 그 경로에서 찾는다 */
+export function factPath(parent: string | undefined, ref: string): string {
+  return ref.includes('/') ? ref : `${parent}/facts/${ref}`
+}
+
 /** 다른 문서를 가리키는 값이 실제로 있는지 */
 async function checkRefs(
   store: Firestore,
+  path: string,
   kind: Kind,
   parent: string | undefined,
   data: Record<string, unknown>,
@@ -117,7 +168,13 @@ async function checkRefs(
     await mustExist(store, `materials/${String(data.material)}`, '자료 먼저')
   if (kind === 'fact')
     for (const f of refs('derivedFrom'))
-      await mustExist(store, `${parent}/facts/${f}`, '근거 사실 먼저')
+      await mustExist(store, factPath(parent, f), '근거 사실 먼저')
+  if (kind === 'vendorCard')
+    await mustExist(
+      store,
+      `vendors/${path.split('/').at(-1)}`,
+      '업체 레지스트리 먼저',
+    )
   if (kind === 'review')
     await mustExist(
       store,
@@ -132,7 +189,7 @@ async function checkRefs(
   }
   if (kind === 'task' && data.subject)
     await mustExist(store, String(data.subject), '작업 대상')
-  if (kind === 'report') checkReport(String(data.markdown))
+  if (kind === 'report') checkReport(String(data.markdown), parent)
 }
 
 /** 양식·참조를 검사하고 문서를 통째로 쓴다 */
@@ -140,15 +197,15 @@ export async function put(path: string, value: unknown): Promise<void> {
   const data = validate(path, value) as Record<string, unknown>
   const { kind, parent } = resolve(path)
   const store = db()
-  await checkRefs(store, kind, parent, data)
+  await checkRefs(store, path, kind, parent, data)
   // 게시 문서에는 홈·목록용 요약을 리포트에서 계산해 함께 쓴다
+  const slug = path.split('/')[1]
   const out =
     kind === 'published'
-      ? {
-          ...data,
-          summary: await checkPublished(store, path.split('/')[1], data),
-        }
-      : data
+      ? { ...data, summary: await checkPublished(store, slug, data) }
+      : kind === 'publishedVendor'
+        ? { ...data, summary: await checkPublishedVendor(store, slug, data) }
+        : data
   await store.doc(path).set(out)
 }
 

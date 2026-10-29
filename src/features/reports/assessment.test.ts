@@ -101,6 +101,12 @@ describe('verdictReason (판정 이유 한두 문장)', () => {
     )
   })
 
+  test('핵심 축이 순항이지만 근거가 부족하면 그 축을 적는다', () => {
+    expect(verdictReason(statuses({}), { outcome: 'thin' })).toBe(
+      '② 진척과 ③ 성과가 ‘순항’이지만 ③ 성과의 근거가 부족합니다. 핵심 축 가운데 하나라도 근거가 부족하면 종합 판정은 ‘지켜볼 점 있음’까지입니다.',
+    )
+  })
+
   test('판단 불가와 순항', () => {
     expect(
       verdictReason(statuses({ progress: 'unknown', outcome: 'unknown' })),

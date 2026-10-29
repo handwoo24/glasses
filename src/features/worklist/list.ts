@@ -23,6 +23,10 @@ export const STAGE_FILTERS = [
 
 export const WorklistSearchSchema = z.object({
   dept: z.string().min(1).optional().catch(undefined),
+  /** 게시된 사업 아래 업체 줄: 펼침(기본)·접음 */
+  vendors: z.enum(['open', 'closed']).optional().catch(undefined),
+  /** 업체 작업이 남은 사업만: 목록화가 남았거나 게시 전 업체가 있는 사업 */
+  vendorWork: z.boolean().optional().catch(undefined),
   stage: z.enum(STAGE_FILTERS).optional().catch(undefined),
   sort: z
     .enum(Object.keys(SORTS) as [Sort, ...Array<Sort>])
@@ -82,13 +86,27 @@ const COMPARE: Record<Sort, (a: WorkItem, b: WorkItem) => number> = {
     byBudget(a, b),
 }
 
+/** 게시된 사업인데 업체 목록화를 하지 않았다 */
+function needsListing(item: WorkItem): boolean {
+  return item.stage === '게시' && !item.vendorsListedAt
+}
+
+function hasVendorWork(item: WorkItem): boolean {
+  return needsListing(item) || item.vendors.some((v) => v.stage !== '게시')
+}
+
 /** 부서·단계 필터를 거쳐 정렬한 목록 */
 export function filterItems(
   items: ReadonlyArray<WorkItem>,
   search: WorklistSearch,
 ): Array<WorkItem> {
   return items
-    .filter((i) => inDept(i, search.dept) && inStage(i, search.stage))
+    .filter(
+      (i) =>
+        inDept(i, search.dept) &&
+        inStage(i, search.stage) &&
+        (!search.vendorWork || hasVendorWork(i)),
+    )
     .sort(COMPARE[search.sort ?? 'priority'])
 }
 
@@ -137,4 +155,31 @@ export function eok(won: number): string {
   if (v >= 10) return `${Math.round(v).toLocaleString('ko-KR')}억`
   if (v >= 1) return `${v.toFixed(1).replace(/\.0$/, '')}억`
   return `${Math.round(won / 1e4).toLocaleString('ko-KR')}만`
+}
+
+export interface VendorStats {
+  /** 업체 카드 수 */
+  cards: number
+  published: number
+  fix: number
+  /** 수집·분석·작성·검증·게시 대기 */
+  working: number
+  waiting: number
+  /** 업체 목록화가 남은 게시 사업 이름 */
+  toList: Array<string>
+}
+
+/** 업체 리포트 작업 현황 (화면 위 숫자) */
+export function vendorStats(items: ReadonlyArray<WorkItem>): VendorStats {
+  const vendors = items.flatMap((i) => i.vendors)
+  const count = (pick: (stage: WorkStage) => boolean) =>
+    vendors.filter((v) => pick(v.stage)).length
+  return {
+    cards: vendors.length,
+    published: count((s) => s === '게시'),
+    fix: count((s) => s === '고침'),
+    working: count((s) => s !== '게시' && s !== '고침' && s !== '대기'),
+    waiting: count((s) => s === '대기'),
+    toList: items.filter(needsListing).map((i) => i.name),
+  }
 }

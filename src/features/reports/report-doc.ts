@@ -90,7 +90,7 @@ export interface ReportDoc {
     }
   }
   side: Panel
-  /** 종합 판정 문장: ① 잘되는 것 ② 가장 큰 문제와 금액 ③ 다음 확인 시점, 4문장 안쪽 */
+  /** 옛 판의 판정 문단. 새 판에는 없다(빈 문자열). 화면에 쓰지 않는다 */
   verdict: string
   nextDates: ReadonlyArray<NextDate>
   status: Panel

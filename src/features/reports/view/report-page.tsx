@@ -21,6 +21,7 @@ import {
 import type { AxisDoc, ReportDoc } from '../report-doc'
 import type { Source } from '../schema'
 import { AxisFlow } from './axis-flow'
+import { NextTimeline, VerdictStrip } from './verdict-band'
 import type { FlowKind } from './axis-flow'
 import {
   BudgetBasisFold,
@@ -31,13 +32,7 @@ import {
   OversightFold,
   TimelineFold,
 } from './details'
-import {
-  AxisFactList,
-  CitedText,
-  DDay,
-  OverallEvidenceMark,
-  StatusBadge,
-} from './parts'
+import { AxisFactList, CitedText, DDay, StatusBadge } from './parts'
 import { RequestBox } from './request-box'
 import { useOpenDetailsOnHash } from './use-open-details-on-hash'
 
@@ -71,11 +66,18 @@ export function ReportPage({ doc: K }: { doc: ReportDoc }) {
       <div className="page">
         <div className="rp">
           <Hero doc={K} />
-          <div className="rp-top">
-            <VerdictCard doc={K} summary={summary} />
-            <NextCard doc={K} />
+          <div className="vb">
+            <VerdictStrip
+              overall={summary.overall}
+              evidence={summary.evidence}
+            />
+            <NextTimeline dates={K.nextDates} nextReview={K.nextReview} />
           </div>
           <KeyPoints axes={K.axes} />
+          <p className="vb-why">
+            <b>판정 이유</b> {verdictReason(summary.statuses, summary.levels)}{' '}
+            <a href="#fold-method">판정 규칙</a>
+          </p>
           <section className="rp-flow" aria-labelledby="t-flow">
             <div className="rp-mini-h">
               <h2 id="t-flow" className="label">
@@ -194,83 +196,6 @@ function Hero({ doc: K }: { doc: ReportDoc }) {
         <span>평가 체계 v{AXES_VERSION}</span>
       </p>
     </header>
-  )
-}
-
-const METER: ReadonlyArray<AxisStatus> = ['on-track', 'watch', 'fix']
-
-function VerdictCard({
-  doc: K,
-  summary,
-}: {
-  doc: ReportDoc
-  summary: Summary
-}) {
-  const { overall, evidence, statuses } = summary
-  const tone = STATUS_TONE[overall]
-  return (
-    <section
-      className={`rp-verdict ${tone}`}
-      id="verdict"
-      aria-labelledby="t-verdict"
-    >
-      <div className="top">
-        <h2 id="t-verdict" className="label">
-          종합 판정
-        </h2>
-        <OverallEvidenceMark level={evidence} />
-      </div>
-      <div className="mid">
-        <p className="big">{STATUS_INFO[overall].overall}</p>
-        <div
-          className="meter"
-          role="img"
-          aria-label={`판정 미터: 순항, 지켜볼 점 있음, 개선 필요 가운데 ${STATUS_INFO[overall].overall}`}
-        >
-          {METER.map((s) => (
-            <span key={s} className={s === overall ? 'on' : undefined}>
-              <i />
-              {STATUS_INFO[s].overall}
-            </span>
-          ))}
-        </div>
-      </div>
-      <p className="sentence">{K.verdict}</p>
-      <p className="why">
-        <b>판정 이유</b> {verdictReason(statuses)}{' '}
-        <a href="#fold-method">판정 규칙</a>
-      </p>
-    </section>
-  )
-}
-
-function NextCard({ doc: K }: { doc: ReportDoc }) {
-  const first = K.nextDates.at(0)
-  const rest = K.nextDates.slice(1)
-  return (
-    <section className="rp-next" aria-labelledby="t-next">
-      <h2 id="t-next" className="label">
-        다음 판단 시점
-      </h2>
-      {first && (
-        <>
-          <p className="big">
-            {first.when} <DDay date={first.date} />
-          </p>
-          <p className="what">{first.what}</p>
-        </>
-      )}
-      {rest.length > 0 && (
-        <ol>
-          {rest.map((d, i) => (
-            <li key={`${i}-${d.when}`}>
-              <b>{d.when}</b> {d.what}
-            </li>
-          ))}
-        </ol>
-      )}
-      <p className="foot">다음 갱신 예정 {K.nextReview}</p>
-    </section>
   )
 }
 

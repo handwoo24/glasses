@@ -26,6 +26,8 @@ export type EvidenceLevel = (typeof EVIDENCE_LEVELS)[number]
 export type OverallEvidence = 'high' | 'medium' | 'low'
 
 export type AxisStatuses = Record<AxisId, AxisStatus>
+/** 축별 근거 수준. 종합 판정은 핵심 축의 ‘부족’만 본다 */
+export type AxisEvidence = Partial<Record<AxisId, EvidenceLevel>>
 
 export const AXIS_INFO: Record<
   AxisId,
@@ -99,13 +101,28 @@ export const OVERALL_EVIDENCE_INFO: Record<OverallEvidence, string> = {
   low: '낮음',
 }
 
+/** 문서가 쓰는 축 목록: 순서대로의 id와 문서 제목에 쓰는 이름(④ 비용). 사업·재정 문서와 업체 리포트가 다르다 */
+export interface AxisSet<TAxis extends string> {
+  ids: ReadonlyArray<TAxis>
+  name: (id: TAxis) => string
+}
+
+export const PROGRAM_AXES: AxisSet<AxisId> = {
+  ids: AXIS_IDS,
+  name: (a) => `${AXIS_INFO[a].no} ${AXIS_INFO[a].label}`,
+}
+
+/** 축 목록을 받는 파서의 구현부가 쓰는 꼴. 공개 시그니처는 축 id 타입을 지킨다 */
+export const ANY_AXES = PROGRAM_AXES as unknown as AxisSet<string>
+
 /** 종합 판정 규칙을 사람이 읽는 문장으로. overallStatus와 같은 순서다 */
 export const OVERALL_RULES: ReadonlyArray<string> = [
   '② 진척 또는 ③ 성과가 ‘개선 필요’다 → 개선 필요',
   '‘개선 필요’인 축이 두 개 이상이다 → 개선 필요',
   '②와 ③이 모두 ‘판단 불가’이고 ‘개선 필요’인 축이 없다 → 아직 판단 불가',
   '‘개선 필요’인 축이 하나이거나, ②·③ 중 하나라도 ‘순항’이 아니다 → 지켜볼 점 있음',
-  '②와 ③이 ‘순항’이고 ‘개선 필요’인 축이 없다 → 순항',
+  '②와 ③이 ‘순항’이지만 하나라도 근거가 ‘부족’이다 → 지켜볼 점 있음',
+  '②와 ③이 ‘순항’이고 근거가 ‘일부’ 이상이며 ‘개선 필요’인 축이 없다 → 순항',
 ]
 
 /** OVERALL_RULES 각 줄의 결과 */
@@ -114,23 +131,34 @@ const OVERALL_RULE_RESULT: ReadonlyArray<AxisStatus> = [
   'fix',
   'unknown',
   'watch',
+  'watch',
   'on-track',
 ]
 
+/** 핵심 축: 근거가 부족하면 다른 축이 모두 좋아도 순항으로 보지 않는다 */
+export const CORE_AXES = AXIS_IDS.filter((a) => AXIS_INFO[a].core)
+
 /** 위에서부터 차례로 보고 처음 해당하는 규칙의 번호(0부터, OVERALL_RULES 순서) */
-export function overallRule(axes: AxisStatuses): number {
+export function overallRule(
+  axes: AxisStatuses,
+  evidence: AxisEvidence = {},
+): number {
   const fixes = AXIS_IDS.filter((a) => axes[a] === 'fix').length
   const { progress, outcome } = axes
   if (progress === 'fix' || outcome === 'fix') return 0
   if (fixes >= 2) return 1
   if (progress === 'unknown' && outcome === 'unknown' && fixes === 0) return 2
   if (fixes === 1 || progress !== 'on-track' || outcome !== 'on-track') return 3
-  return 4
+  if (CORE_AXES.some((a) => evidence[a] === 'thin')) return 4
+  return 5
 }
 
 /** 종합 판정: 위에서부터 차례로 보고 처음 해당하는 규칙으로 정한다 */
-export function overallStatus(axes: AxisStatuses): AxisStatus {
-  return OVERALL_RULE_RESULT[overallRule(axes)]
+export function overallStatus(
+  axes: AxisStatuses,
+  evidence: AxisEvidence = {},
+): AxisStatus {
+  return OVERALL_RULE_RESULT[overallRule(axes, evidence)]
 }
 
 /** 종합 근거 수준: ‘충분’이 과반이면 높음, ‘부족’이 과반이면 낮음, 그 밖에는 중간 */

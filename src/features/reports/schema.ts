@@ -13,6 +13,7 @@ export const ALLOWED_SOURCE_HOSTS = [
   'www.lofin365.go.kr',
   'www.ev.or.kr',
   'www.g2b.go.kr',
+  'www.data.go.kr',
   'contract.anyang.go.kr',
   'www.bai.go.kr',
   'www.gg.go.kr',

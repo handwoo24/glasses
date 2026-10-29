@@ -70,61 +70,151 @@
   color: var(--ink);
 }
 
-/* 판정 카드와 다음 판단 시점 */
-.rp-top {
+/* 판정 띠와 다음 판단 시간선 (B안) */
+.vb {
   display: grid;
   gap: var(--sp-4);
 }
-.rp-verdict {
-  display: grid;
-  gap: var(--sp-4);
-  padding: var(--sp-6);
+.vb-strip {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp-3) var(--sp-8);
+  padding: var(--sp-5) var(--sp-6);
   border-radius: var(--r-lg);
   background: var(--ground);
   scroll-margin-top: var(--sp-4);
 }
-.rp-verdict.bad {
+.vb-strip.bad {
   background: var(--bad-soft);
 }
-.rp-verdict.warn {
+.vb-strip.warn {
   background: var(--warn-soft);
 }
-.rp-verdict.ok {
+.vb-strip.ok {
   background: var(--ok-soft);
 }
-.rp-verdict .top {
+.vb-strip .label {
+  flex: 0 0 auto;
+}
+.vb-strip .big {
+  font-size: clamp(1.8rem, 1.3rem + 1.4vw, 2.4rem);
+  font-weight: 900;
+  line-height: 1;
+  letter-spacing: -0.03em;
+}
+.vb-strip.bad .big,
+.vb-strip.bad .label {
+  color: var(--bad);
+}
+.vb-strip.warn .big,
+.vb-strip.warn .label {
+  color: var(--warn);
+}
+.vb-strip.ok .big,
+.vb-strip.ok .label {
+  color: var(--ok);
+}
+.vb-strip.none .big {
+  color: var(--muted);
+}
+.vb-strip .ev {
+  margin-left: auto;
+}
+.vb-next {
+  display: grid;
+  gap: var(--sp-3);
+}
+.vb-next-h {
   display: flex;
   flex-wrap: wrap;
   justify-content: space-between;
   align-items: baseline;
   gap: var(--sp-2);
 }
-.rp-verdict .mid {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--sp-3) var(--sp-8);
+.vb-next-h .label {
+  color: var(--blue);
 }
-.rp-verdict .big {
-  font-size: clamp(2rem, 1.4rem + 2vw, var(--fs-d2));
-  font-weight: 900;
-  line-height: 1;
-  letter-spacing: -0.03em;
-}
-.rp-verdict.bad .big,
-.rp-verdict.bad .top .label {
-  color: var(--bad);
-}
-.rp-verdict.warn .big,
-.rp-verdict.warn .top .label {
-  color: var(--warn);
-}
-.rp-verdict.ok .big,
-.rp-verdict.ok .top .label {
-  color: var(--ok);
-}
-.rp-verdict.none .big {
+.vb-next-h .foot {
+  font-size: var(--fs-micro);
   color: var(--muted);
+}
+.vb-tl {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  border-top: 3px solid var(--blue);
+}
+.vb-tl li {
+  position: relative;
+  display: grid;
+  gap: 2px;
+  align-content: start;
+  padding: var(--sp-3) var(--sp-4) var(--sp-1) 0;
+}
+.vb-tl li::before {
+  content: '';
+  position: absolute;
+  top: -8px;
+  left: 0;
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  background: var(--paper);
+  border: 3px solid var(--blue);
+}
+.vb-tl li:first-child::before {
+  background: var(--blue);
+}
+.vb-tl .when {
+  font-size: 18px;
+  font-weight: 900;
+  color: var(--blue);
+  font-variant-numeric: tabular-nums;
+}
+.vb-tl li:first-child .when {
+  font-size: 24px;
+}
+.vb-tl .what {
+  font-size: var(--fs-small);
+  color: var(--ink-soft);
+}
+.vb-tl li:first-child .what {
+  color: var(--ink);
+  font-weight: 700;
+}
+.vb-strip.bad .meter .on i {
+  background: var(--bad);
+}
+.vb-strip.warn .meter .on i {
+  background: var(--warn);
+}
+.vb-strip.ok .meter .on i {
+  background: var(--ok);
+}
+.vb-why {
+  font-size: var(--fs-small);
+  color: var(--ink-soft);
+}
+.vb-why b {
+  color: var(--ink);
+  margin-right: var(--sp-1);
+}
+@media (max-width: 700px) {
+  .vb-strip .ev {
+    margin-left: 0;
+  }
+  .vb-tl {
+    grid-template-columns: 1fr;
+    border-top: 0;
+    border-left: 3px solid var(--blue);
+  }
+  .vb-tl li {
+    padding: var(--sp-2) 0 var(--sp-3) var(--sp-5);
+  }
+  .vb-tl li::before {
+    top: 12px;
+    left: -8px;
+  }
 }
 .meter {
   flex: 1 1 240px;
@@ -153,67 +243,6 @@
 .meter .on {
   font-weight: 700;
   color: var(--ink);
-}
-.rp-verdict.bad .meter .on i {
-  background: var(--bad);
-}
-.rp-verdict.warn .meter .on i {
-  background: var(--warn);
-}
-.rp-verdict.ok .meter .on i {
-  background: var(--ok);
-}
-.rp-verdict .sentence {
-  font-size: var(--fs-lead);
-  font-weight: 700;
-  line-height: 1.6;
-  max-width: 46em;
-}
-.rp-verdict .why {
-  font-size: var(--fs-small);
-  color: var(--ink-soft);
-  padding-top: var(--sp-3);
-  border-top: 1px solid var(--line);
-}
-.rp-verdict .why b {
-  color: var(--ink);
-  margin-right: var(--sp-1);
-}
-.rp-next {
-  display: grid;
-  gap: var(--sp-2);
-  align-content: start;
-  padding: var(--sp-6);
-  border-radius: var(--r-lg);
-  background: var(--blue-soft);
-}
-.rp-next .label {
-  color: var(--blue);
-}
-.rp-next .big {
-  font-size: clamp(1.8rem, 1.3rem + 1.6vw, var(--fs-d2));
-  font-weight: 900;
-  line-height: 1.05;
-  letter-spacing: -0.03em;
-  color: var(--blue);
-}
-.rp-next .what {
-  font-weight: 700;
-}
-.rp-next ol {
-  display: grid;
-  gap: 2px;
-  padding-top: var(--sp-3);
-  border-top: 1px solid var(--line);
-  font-size: var(--fs-small);
-  color: var(--ink-soft);
-}
-.rp-next ol b {
-  color: var(--ink);
-}
-.rp-next .foot {
-  font-size: var(--fs-micro);
-  color: var(--muted);
 }
 
 /* 핵심 내용: 무거운 판정의 축 결론 세 개 */

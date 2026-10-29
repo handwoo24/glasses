@@ -27,6 +27,7 @@ orgs/{기관코드}                         기관 레지스트리. 행정표준
   notes/{id}                            기관 단위 배경 메모
   budgets/{연도-구분}                    재정 문서 (2026-supplementary-3) ─┐
 programs/{기관코드}.{사업}               사업 카드 (연도 없는 고정 id) ──────┤ 평가 대상
+  vendors/{사업자등록번호}               업체 카드: 사업 안에서 업체 하나가 맡은 일 ┤ (업체 리포트)
   {대상}/facts/f{n}                      사실 원장: 원문 사실(자료·위치·인용) 또는 계산된 사실(근거 사실·계산식)
   {대상}/absences/a{n}                   "공개 자료에서 찾지 못했다"의 근거: 어디를 찾아봤나
   {대상}/reports/{YYYY-MM-DD}            리포트 한 판 (마크다운)
@@ -36,6 +37,8 @@ budgetLines/{세부사업 코드}-{연도}        예산 카탈로그 (지방재
 materials/m-{원본 sha256 앞 12자리}       수집 자료 색인 (발행처, 다루는 기관, 쓰이는 평가 대상)
 tasks/{id}                               작업 큐
 published/{주소}                         사이트에 보이는 리포트 (사람이 승인해 쓴다)
+vendors/{사업자등록번호}                  업체 레지스트리 (공식 등록 정보만, 대표자 이름 없음)
+publishedVendors/{주소}                  사이트에 보이는 업체 리포트
 ```
 
 - 기관 id는 행정표준 기관코드다. 지방재정365 세부사업 코드의 앞 7자리와 같다. 지방재정365 자치단체 코드는 `lafCd`로 따로 적는다. 공공기관은 `alio-{ALIO 코드}`.
@@ -56,11 +59,27 @@ published/{주소}                         사이트에 보이는 리포트 (사
 
 작업은 프로젝트 스킬로 한다. 세션 하나에 사업 하나.
 
-| 스킬                                                           | 하는 일                                               |
-| -------------------------------------------------------------- | ----------------------------------------------------- |
-| [`list-programs`](../../.claude/skills/list-programs/SKILL.md) | 기관 세부사업 전수 목록화, 평가 대상 사업 카드 올리기 |
-| [`write-report`](../../.claude/skills/write-report/SKILL.md)   | 사업 하나의 자료·사실·부재 기록·리포트 초안           |
-| [`verify-report`](../../.claude/skills/verify-report/SKILL.md) | 다른 세션이 쓴 리포트를 원장·원문과 대조해 검증 기록  |
+| 스킬                                                                       | 하는 일                                                   |
+| -------------------------------------------------------------------------- | --------------------------------------------------------- |
+| [`list-programs`](../../.claude/skills/list-programs/SKILL.md)             | 기관 세부사업 전수 목록화, 평가 대상 사업 카드 올리기     |
+| [`write-report`](../../.claude/skills/write-report/SKILL.md)               | 사업 하나의 자료·사실·부재 기록·리포트 초안               |
+| [`verify-report`](../../.claude/skills/verify-report/SKILL.md)             | 다른 세션이 쓴 리포트를 원장·원문과 대조해 검증 기록      |
+| [`write-vendor-report`](../../.claude/skills/write-vendor-report/SKILL.md) | 사업 안 업체 하나의 업체 리포트 (업체 루프 일꾼도 읽는다) |
+
+## 업체 루프
+
+사업 리포트가 게시되면 업체 루프(`scripts/loop.sh --vendors`, 스킬 [`run-vendor-loop`](../../.claude/skills/run-vendor-loop/SKILL.md))가 이어받는다. 큐는 따로 적지 않는다. `npm run pipeline -- vendor-worklist`가 업체 목록화가 남은 게시 사업(사업 카드에 `vendorsListedAt`이 없는 것)과 업체 카드별 단계(사업과 같은 계산)를 돌려준다.
+
+| 칸        | 일꾼                                      | 남기는 것                                                                       |
+| --------- | ----------------------------------------- | ------------------------------------------------------------------------------- |
+| 목록화    | `vendor-lister`                           | `vendors/{번호}`, `programs/{사업}/vendors/{번호}`, 사업 카드 `vendorsListedAt` |
+| 수집      | `vendor-collector`                        | 나라장터·시 계약정보·회의록 자료 (`subjects`에 업체 경로)                       |
+| 발췌·원장 | `report-extractor`·`report-ledger` (공용) | `{업체 경로}/facts`·`absences`. 사업 쪽 사실은 경로로 가리킨다                  |
+| 작성      | `vendor-writer`                           | `{업체 경로}/reports/{기준일}` (양식 `src/features/vendors/doc/FORMAT.md`)      |
+| 검증      | `report-verifier` (공용)                  | `{업체 경로}/reviews/{id}`                                                      |
+| 게시      | 오케스트레이터 (`publish`)                | `publishedVendors/{주소}`, 화면 `/programs/{사업}/vendors/{번호}`               |
+
+나라장터 OpenAPI는 `npm run catalog -- g2b`로 부른다(인증키 `DATA_GO_KR_SERVICE_KEY`, 응답의 사람 이름을 지우고 저장). 한글 공고서는 `npm run catalog -- hwp-text`.
 
 ## Storage
 

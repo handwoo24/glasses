@@ -1,5 +1,6 @@
 // ‘자세히 보기’: 판정의 재료를 접어 둔다. 내용은 리포트 데이터(Report)에서 온다.
-import { AXES_VERSION, AXIS_IDS, AXIS_INFO } from '../axes'
+import { ANY_AXES, AXES_VERSION } from '../axes'
+import type { AxisId, AxisSet, AxisStatus } from '../axes'
 import { answerCounts } from '../assessment'
 import type { ClassifiedCheck } from '../assessment'
 import { Cite } from '../components/cite'
@@ -22,13 +23,20 @@ import {
 } from './method-parts'
 import { AnswerBadge, Fold, StatusBadge } from './parts'
 
-interface ChecksFoldProps {
-  checks: ReadonlyArray<ClassifiedCheck>
-  signals: Record<string, ReadonlyArray<RiskSignal>>
-  axes: ReportDoc['axes']
+interface ChecksFoldProps<TAxis extends string> {
+  checks: ReadonlyArray<ClassifiedCheck<TAxis>>
+  signals: Partial<Record<TAxis, ReadonlyArray<RiskSignal>>>
+  axes: Record<TAxis, { status: AxisStatus }>
+  /** 축 목록 (기본: 사업의 7개 축). 업체 리포트는 업체 축 */
+  set?: AxisSet<TAxis>
 }
 
-export function ChecksFold({ checks, signals, axes }: ChecksFoldProps) {
+export function ChecksFold<TAxis extends string = AxisId>({
+  checks,
+  signals,
+  axes,
+  set = ANY_AXES as unknown as AxisSet<TAxis>,
+}: ChecksFoldProps<TAxis>) {
   const n = answerCounts(checks)
   return (
     <Fold
@@ -40,14 +48,13 @@ export function ChecksFold({ checks, signals, axes }: ChecksFoldProps) {
         상태는 질문의 답입니다. 답이 ‘아니오’면 미충족이고, 왜 그런지는 ‘확인 못
         한 것’에 따로 적습니다. 위법 여부를 판단한 것이 아닙니다.
       </p>
-      {AXIS_IDS.map((a) => {
+      {set.ids.map((a) => {
         const rows = checks.filter((k) => k.axis === a)
-        const sig = signals[a] ?? []
+        const sig: ReadonlyArray<RiskSignal> = signals[a] ?? []
         return (
           <div key={a}>
             <h4>
-              {AXIS_INFO[a].no} {AXIS_INFO[a].label}{' '}
-              <StatusBadge status={axes[a].status} />
+              {set.name(a)} <StatusBadge status={axes[a].status} />
             </h4>
             {rows.length > 0 ? (
               <ul className="chks">

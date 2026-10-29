@@ -6,8 +6,9 @@ import {
   eok,
   filterItems,
   stageCounts,
+  vendorStats,
 } from './list'
-import type { WorkItem } from './server/worklist.server'
+import type { VendorWork, WorkItem } from './server/worklist.server'
 
 function item(id: string, patch: Partial<WorkItem> = {}): WorkItem {
   return {
@@ -23,6 +24,8 @@ function item(id: string, patch: Partial<WorkItem> = {}): WorkItem {
     absences: 0,
     latestReport: null,
     summary: null,
+    vendorsListedAt: null,
+    vendors: [],
     ...patch,
   }
 }
@@ -146,5 +149,72 @@ describe('WorklistSearchSchema · eok', () => {
       '3.2억',
       '4,500만',
     ])
+  })
+})
+
+const vendor = (
+  bizno: string,
+  patch: Partial<VendorWork> = {},
+): VendorWork => ({
+  bizno,
+  name: bizno,
+  role: '유지보수',
+  amount: 1e8,
+  stage: '대기',
+  summary: null,
+  programs: 1,
+  ...patch,
+})
+
+describe('업체 작업', () => {
+  const work = [
+    item('a', {
+      stage: '게시',
+      vendorsListedAt: '2026-10-29',
+      vendors: [
+        vendor('1', { stage: '게시' }),
+        vendor('2', { stage: '고침' }),
+        vendor('3', { stage: '수집' }),
+      ],
+    }),
+    item('b', { stage: '게시', vendorsListedAt: null }),
+    item('c', {
+      stage: '게시',
+      vendorsListedAt: '2026-10-29',
+      vendors: [vendor('4', { stage: '게시' }), vendor('5')],
+    }),
+    item('d', { stage: '대기' }),
+  ]
+
+  it('업체 리포트 단계를 세고, 목록화가 남은 게시 사업을 고른다', () => {
+    expect(vendorStats(work)).toEqual({
+      cards: 5,
+      published: 2,
+      fix: 1,
+      working: 1,
+      waiting: 1,
+      toList: ['b'],
+    })
+  })
+
+  it('업체 작업이 남은 사업만 고르면 목록화가 남았거나 게시 전 업체가 있는 사업', () => {
+    expect(filterItems(work, { vendorWork: true }).map((i) => i.id)).toEqual([
+      'a',
+      'b',
+      'c',
+    ])
+    const done = work.map((i) => ({
+      ...i,
+      vendors: i.vendors.map((v) => ({ ...v, stage: '게시' as const })),
+      vendorsListedAt: '2026-10-29',
+    }))
+    expect(filterItems(done, { vendorWork: true })).toEqual([])
+  })
+
+  it('주소의 검색 조건으로 업체 줄 접기와 업체 작업 필터를 받는다', () => {
+    expect(
+      WorklistSearchSchema.parse({ vendors: 'closed', vendorWork: true }),
+    ).toEqual({ vendors: 'closed', vendorWork: true })
+    expect(WorklistSearchSchema.parse({ vendors: 'x' })).toEqual({})
   })
 })

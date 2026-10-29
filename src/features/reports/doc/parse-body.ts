@@ -1,6 +1,6 @@
 // 시민이 읽는 본문 구역: 사업 개요, 종합 판정, 축별 근거, 아직 확인하지 못한 것, 더 알아보는 방법.
-import { AXIS_IDS, AXIS_INFO, EVIDENCE_INFO, STATUS_INFO } from '../axes'
-import type { AxisId } from '../axes'
+import { ANY_AXES, EVIDENCE_INFO, STATUS_INFO } from '../axes'
+import type { AxisId, AxisSet } from '../axes'
 import type { Cited, OverviewCell, UnknownItem } from '../assessment'
 import { fromLabel } from '../labels'
 import { cited, itemParagraphs, lead, plain, requireLead } from './inline'
@@ -85,9 +85,17 @@ export function parseOverview(sec: Section): ReportDoc['overview'] {
   return { cells, chips: { label, cite, items: chipItems } }
 }
 
-export function parseVerdict(sec: Section) {
+/**
+ * 종합 판정: ### 다음 판단 시점 목록. 판정 문단은 쓰지 않는다(판정은 축 상태로 계산하고, 화면에 나오지 않는다).
+ * oldParagraph면 판정 문단이 있는 옛 판도 읽는다(문장 규칙이 새로 쓰는 판을 막는다)
+ */
+export function parseVerdict(sec: Section, oldParagraph = false) {
   const { before, sections } = splitSections(sec.nodes, 3, sec.where)
-  const [p] = expectNodes(before, ['paragraph'], sec.where)
+  const [p] = expectNodes(
+    before,
+    oldParagraph && before.length ? ['paragraph'] : [],
+    sec.where,
+  )
   const next = namedSections(sections, ['다음 판단 시점'], sec.where).get(
     '다음 판단 시점',
   )
@@ -97,22 +105,21 @@ export function parseVerdict(sec: Section) {
     when: l.label,
     what: plain(l.rest, next.where),
   }))
-  return { verdict: plain(p.children, sec.where), nextDates }
+  return { verdict: p ? plain(p.children, sec.where) : '', nextDates }
 }
 
-function axisHeading(
+function axisHeading<TAxis extends string>(
   title: string,
   where: string,
+  set: AxisSet<TAxis>,
 ): {
-  id: AxisId
+  id: TAxis
   status: AxisDoc['status']
   evidence: AxisDoc['evidence']
 } {
   const parts = title.split(' · ')
   const [name, statusLabel, evLabel] = parts
-  const id = AXIS_IDS.find(
-    (a) => `${AXIS_INFO[a].no} ${AXIS_INFO[a].label}` === name,
-  )
+  const id = set.ids.find((a) => set.name(a) === name)
   const status = fromLabel(
     Object.fromEntries(
       Object.entries(STATUS_INFO).map(([k, v]) => [k, v.label]),
@@ -226,20 +233,28 @@ function parseAxis(nodes: ReadonlyArray<RootContent>, where: string): AxisBody {
   return out as unknown as AxisBody
 }
 
-export function parseAxes(sec: Section): Record<AxisId, AxisDoc> {
+export function parseAxes(sec: Section): Record<AxisId, AxisDoc>
+export function parseAxes<TAxis extends string>(
+  sec: Section,
+  set: AxisSet<TAxis>,
+): Record<TAxis, AxisDoc>
+export function parseAxes(
+  sec: Section,
+  set: AxisSet<string> = ANY_AXES,
+): Record<string, AxisDoc> {
   const { before, sections } = splitSections(sec.nodes, 3, sec.where)
   expectNodes(before, [], sec.where)
   const axes = sections.map((s) => {
-    const { id, status, evidence } = axisHeading(s.title, s.where)
+    const { id, status, evidence } = axisHeading(s.title, s.where, set)
     return [id, { status, evidence, ...parseAxis(s.nodes, s.where) }] as const
   })
   const order = axes.map(([id]) => id).join(',')
-  if (order !== AXIS_IDS.join(','))
+  if (order !== set.ids.join(','))
     throw new DocError(
       sec.where,
-      `7개 축이 ①~⑦ 순서로 하나씩 있어야 함 (지금: ${order})`,
+      `${set.ids.length}개 축이 ${set.name(set.ids[0]).slice(0, 1)}~${set.name(set.ids[set.ids.length - 1]).slice(0, 1)} 순서로 하나씩 있어야 함 (지금: ${order})`,
     )
-  return Object.fromEntries(axes) as Record<AxisId, AxisDoc>
+  return Object.fromEntries(axes)
 }
 
 export function parseUnknowns(sec: Section): Array<UnknownItem> {
