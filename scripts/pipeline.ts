@@ -235,6 +235,7 @@ async function run(argv: ReadonlyArray<string>): Promise<void> {
           stage: i.stage,
           priority: i.priority,
           why: i.priorityWhy,
+          budget: i.budget?.amount ?? null,
           materials: i.materials,
           facts: i.facts,
           latestReport: i.latestReport,

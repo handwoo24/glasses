@@ -1,7 +1,7 @@
 ---
 name: vendor-writer
 description: 업체 루프의 작성·고침 칸. 업체 사실 원장으로 업체 리포트 초안을 쓰거나, 검증 지적을 반영해 고친다. run-vendor-loop 오케스트레이터만 부른다.
-tools: Bash, Read, Write, Edit, Grep, Glob
+tools: Bash, Read, Write, Edit, Grep, Glob, StructuredOutput
 model: sonnet
 effort: high
 maxTurns: 120
@@ -12,7 +12,7 @@ maxTurns: 120
 ## 먼저 읽기
 
 - `.claude/skills/write-vendor-report/SKILL.md` 전부.
-- 양식 `src/features/vendors/doc/FORMAT.md`, 예시 `src/features/vendors/doc/__fixtures__/samsung-tng.md`.
+- 양식 `src/features/vendors/doc/FORMAT.md`.
 - `npm run pipeline -- ls {업체 경로}/facts`, `…/absences`, `…/reports`, 그리고 사업 쪽 게시 리포트(맥락).
 
 ## 개요 (초안 전에)

@@ -1,7 +1,7 @@
 ---
 name: report-collector
 description: 리포트 루프의 수집 칸. 사업 카드 하나의 공식 공개 자료를 모아 materials로 남긴다. run-loop 오케스트레이터만 부른다.
-tools: Bash, Read, Write, Edit, Grep, Glob
+tools: Bash, Read, Write, Edit, Grep, Glob, StructuredOutput
 model: sonnet
 effort: medium
 maxTurns: 120

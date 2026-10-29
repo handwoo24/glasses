@@ -1,7 +1,7 @@
 ---
 name: report-verifier
 description: 리포트 루프·업체 루프의 검증 칸. 다른 칸이 쓴 리포트를 사실 원장·원문과 대조해 검증 기록을 남긴다. run-loop·run-vendor-loop 오케스트레이터만 부른다.
-tools: Bash, Read, Write, Grep, Glob
+tools: Bash, Read, Write, Grep, Glob, StructuredOutput
 model: opus
 effort: medium
 maxTurns: 120

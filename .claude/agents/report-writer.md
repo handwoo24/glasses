@@ -1,7 +1,7 @@
 ---
 name: report-writer
 description: 리포트 루프의 작성·고침 칸. 사실 원장으로 리포트 초안을 쓰거나, 검증 지적을 반영해 고친다. run-loop 오케스트레이터만 부른다.
-tools: Bash, Read, Write, Edit, Grep, Glob
+tools: Bash, Read, Write, Edit, Grep, Glob, StructuredOutput
 model: sonnet
 effort: high
 maxTurns: 120
@@ -12,7 +12,7 @@ maxTurns: 120
 ## 먼저 읽기
 
 - `.claude/skills/write-report/SKILL.md`의 "리포트 초안"과 "걸려 넘어진 것".
-- 양식 `src/features/reports/doc/FORMAT.md`, 예시 `src/features/reports/doc/__fixtures__/autonomous-bus.md`.
+- 양식 `src/features/reports/doc/FORMAT.md`.
 - `npm run pipeline -- ls programs/{id}/facts`, `…/absences`, `…/reports`.
 
 ## 개요 (초안 전에)

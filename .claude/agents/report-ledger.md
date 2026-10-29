@@ -1,7 +1,7 @@
 ---
 name: report-ledger
 description: 리포트 루프·업체 루프의 사실 원장 칸. 발췌 후보에서 사실·계산·부재 기록을 만든다. run-loop·run-vendor-loop 오케스트레이터만 부른다.
-tools: Bash, Read, Write, Edit, Grep, Glob
+tools: Bash, Read, Write, Edit, Grep, Glob, StructuredOutput
 model: sonnet
 effort: high
 maxTurns: 120
