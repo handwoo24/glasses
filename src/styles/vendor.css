@@ -3,7 +3,10 @@
   align-items: stretch;
 }
 .vr-top .rp-verdict {
-  align-content: center;
+  grid-template-rows: auto 1fr;
+}
+.vr-top .rp-verdict .mid {
+  align-self: center;
 }
 .vr-axes {
   display: grid;
