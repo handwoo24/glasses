@@ -1,5 +1,10 @@
 import { describe, expect, test } from 'vitest'
-import { answerCounts, summarize, verdictReason } from './assessment'
+import {
+  answerCounts,
+  groupByStatus,
+  summarize,
+  verdictReason,
+} from './assessment'
 import type { AxisId, AxisStatus } from './axes'
 import { AXIS_IDS } from './axes'
 import type { AxisDoc } from './report-doc'
@@ -113,5 +118,24 @@ describe('answerCounts', () => {
     expect(
       answerCounts([{ answer: 'yes' }, { answer: 'open' }, { answer: 'open' }]),
     ).toEqual({ yes: 1, no: 0, open: 2, none: 0 })
+  })
+})
+
+describe('groupByStatus', () => {
+  test('나쁜 상태부터 묶고, 없는 상태는 빼며, 축 순서를 지킨다', () => {
+    const g = groupByStatus(
+      assessment({
+        goal: { status: 'watch' },
+        outcome: { status: 'unknown' },
+        cost: { status: 'watch' },
+        sustainability: { status: 'fix' },
+      }).axes,
+    )
+    expect(g).toEqual([
+      { status: 'fix', axes: ['sustainability'] },
+      { status: 'watch', axes: ['goal', 'cost'] },
+      { status: 'on-track', axes: ['progress', 'execution', 'accountability'] },
+      { status: 'unknown', axes: ['outcome'] },
+    ])
   })
 })

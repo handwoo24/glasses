@@ -394,18 +394,116 @@
   border-color: var(--muted);
 }
 
-/* 7조각 링 */
-.axis-ring .seg {
-  stroke: var(--none-mark);
+/* 7개 축 요약: 상태별 막대와 문장. 칸 길이는 축 수 */
+.axis-sum {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
 }
-.axis-ring .seg.bad {
-  stroke: var(--bad-mark);
+.axis-sum .bar {
+  display: flex;
+  gap: 2px;
+  height: 10px;
 }
-.axis-ring .seg.warn {
-  stroke: var(--warn-mark);
+.axis-sum .bar span {
+  flex: 1 1 0;
+  background: var(--none-mark);
 }
-.axis-ring .seg.ok {
-  stroke: var(--ok-mark);
+.axis-sum .bar span:first-child {
+  border-top-left-radius: 3px;
+  border-bottom-left-radius: 3px;
+}
+.axis-sum .bar span:last-child {
+  border-top-right-radius: 3px;
+  border-bottom-right-radius: 3px;
+}
+.axis-sum .bar .bad {
+  background: var(--bad-mark);
+}
+.axis-sum .bar .warn {
+  background: var(--warn-mark);
+}
+.axis-sum .bar .ok {
+  background: var(--ok-mark);
+}
+.axis-sum .txt {
+  font-size: var(--fs-small);
+  line-height: 1.75;
+  color: var(--ink-soft);
+}
+/* 축 이름에 가운뎃점(투명성·책임)이 있어 묶음 사이는 기호 없이 띄운다 */
+.axis-sum.detail .txt > span + span {
+  margin-left: 14px;
+}
+/* 목록 줄: 막대 200px 옆에 개수 */
+.axis-sum.list {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 14px;
+}
+.axis-sum.list .bar {
+  width: 200px;
+  max-width: 100%;
+}
+.axis-sum.list .txt {
+  font-size: 13px;
+  line-height: 1.6;
+}
+/* 목록·좁은 줄: 묶음 단위로만 줄을 넘긴다 */
+.axis-sum.list .txt,
+.axis-sum.count .txt {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 10px;
+}
+.axis-sum.list .txt > span,
+.axis-sum.count .txt > span {
+  white-space: nowrap;
+}
+/* 좁은 줄: 막대 없이 색 점과 개수 */
+.axis-sum.count .txt {
+  font-size: var(--fs-micro);
+  line-height: 1.5;
+}
+.axis-sum.count .txt i {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin-right: 5px;
+  border-radius: 2px;
+  background: var(--none-mark);
+}
+.axis-sum.count .txt .ok i {
+  background: var(--ok-mark);
+}
+.axis-sum.count .txt .warn i {
+  background: var(--warn-mark);
+}
+.axis-sum.count .txt .bad i {
+  background: var(--bad-mark);
+}
+.axis-sum.count .txt .bad b {
+  padding: 0;
+  background: none;
+  color: var(--bad);
+  font-weight: 700;
+}
+.axis-sum .txt b {
+  color: var(--muted);
+}
+.axis-sum .txt .ok b {
+  color: var(--ok);
+}
+.axis-sum .txt .warn b {
+  color: var(--warn);
+}
+.axis-sum .txt .bad b {
+  padding: 1px 6px;
+  border-radius: 3px;
+  background: var(--bad-mark);
+  color: var(--on-bad);
+  font-weight: 900;
 }
 
 /* 본문 구역과 오른쪽 목차 */
@@ -478,17 +576,19 @@
   vertical-align: 2px;
   white-space: nowrap;
 }
-/* D-day: 날짜 옆 작은 알약 */
+/* D-day: 날짜 옆 작은 알약. 글줄 기준선에 맞춘다 */
 .dday {
   display: inline-block;
-  padding: 1px 9px;
+  padding: 0 7px;
   border-radius: var(--r-pill);
-  background: var(--paper);
+  background: var(--blue-soft);
   color: var(--blue);
-  font-size: var(--fs-small);
+  font-size: var(--fs-micro);
   font-weight: 700;
+  line-height: 1.6;
   letter-spacing: 0;
-  vertical-align: middle;
+  font-variant-numeric: tabular-nums;
+  vertical-align: baseline;
 }
 
 /* 축별 근거 한 축 */
@@ -866,21 +966,22 @@
   display: grid;
   gap: var(--sp-2);
 }
-.days .dday {
-  background: var(--blue-soft);
-}
 .day-item {
   display: grid;
-  grid-template-columns: 40px minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr) auto;
   gap: var(--sp-3);
   align-items: center;
   color: var(--ink);
   text-decoration: none;
 }
-.day-item .txt {
+.day-item > .txt {
   display: grid;
 }
-.day-item .txt span {
+.day-item > .txt > .sub {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px 12px;
   font-size: var(--fs-small);
   color: var(--ink-soft);
 }

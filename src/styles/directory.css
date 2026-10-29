@@ -296,11 +296,12 @@
   margin-left: auto;
 }
 .filters select {
-  min-height: 42px;
-  padding: 0 var(--sp-3);
-  border: 1px solid var(--line);
+  appearance: none;
+  min-height: 44px;
+  padding: 0 44px 0 14px;
+  border: 1px solid var(--bar);
   border-radius: var(--r-md);
-  background: var(--paper);
+  background: var(--paper) var(--chevron) no-repeat right 14px center / 16px;
   color: var(--ink);
   font: 500 var(--fs-small) var(--font-body);
 }

@@ -149,8 +149,9 @@ button:hover {
   color: var(--warn);
 }
 .st.bad {
-  background: var(--bad-soft);
-  color: var(--bad);
+  background: var(--bad-mark);
+  color: var(--on-bad);
+  font-weight: 900;
 }
 .st.none {
   background: var(--paper);

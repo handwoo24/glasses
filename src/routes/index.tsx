@@ -2,7 +2,7 @@ import { createFileRoute } from '@tanstack/react-router'
 import { listReportSummaries } from '#/features/reports/server/report-docs.functions'
 import { AXES_VERSION } from '#/features/reports/axes'
 import { summarize } from '#/features/reports/assessment'
-import { AxisRing } from '#/features/reports/view/axis-ring'
+import { AxisSummary } from '#/features/reports/view/axis-summary'
 import { ReportLink } from '#/features/reports/view/report-link'
 import { DDay, StatusBadge } from '#/features/reports/view/parts'
 
@@ -72,10 +72,12 @@ function Home() {
                         slug={r.slug}
                         className="day-item"
                       >
-                        <AxisRing axes={r.axes} size={40} />
                         <span className="txt">
                           <b>{what}</b>
-                          <span>{r.title}</span>
+                          <span className="sub">
+                            <span>{r.title}</span>
+                            <AxisSummary axes={r.axes} mode="count" />
+                          </span>
                         </span>
                         <StatusBadge status={summarize(r).overall} overall />
                       </ReportLink>
@@ -104,10 +106,10 @@ function Home() {
                 >
                   <span className="top">
                     <StatusBadge status={overall} overall />
-                    <AxisRing axes={r.axes} size={64} />
                   </span>
                   <span className="proj">{r.project}</span>
                   <h3>{r.title}</h3>
+                  <AxisSummary axes={r.axes} />
                   <span className="s">{r.verdict}</span>
                   <span className="meta">{r.asOf} 기준</span>
                 </ReportLink>
@@ -115,8 +117,8 @@ function Home() {
             })}
           </div>
           <p className="cap">
-            링은 7개 축입니다. 12시부터 시계 방향으로 ①~⑦, 색은 상태, 굵기는
-            근거 수준, 회색은 판단 불가입니다.
+            막대는 7개 축을 상태별로 센 것입니다. 진한 노랑은 개선 필요, 옅은
+            노랑은 지켜볼 점, 남색은 순항, 회색은 판단 불가입니다.
           </p>
         </section>
       </div>

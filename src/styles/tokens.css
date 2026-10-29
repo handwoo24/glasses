@@ -1,27 +1,33 @@
 /* glasses 디자인 시스템 v2 토큰. 이름과 값은 디자인 시스템 아티팩트의 tokens.json과 같다 */
 :root {
   --paper: #ffffff;
-  --ground: #f6f5f2;
-  --ink: #1f2328;
-  --ink-soft: #4a4f57;
-  --muted: #6b7078;
-  --line: #e7e6e3;
-  --bar: #d3d3cf;
-  --navy: #2b3038;
-  --on-navy: #f6f5f2;
-  --blue: #4a63a8;
-  --blue-soft: #eef1f8;
-  --ok: #376e50;
-  --ok-soft: #eaf3ee;
-  --warn: #8c5a0e;
-  --warn-soft: #f7f0e3;
-  --bad: #b4463c;
-  --bad-soft: #f8ecea;
-  /* 그래프·링에서 판정색을 면으로 칠할 때. 흰 바탕 위 3:1 이상 */
-  --ok-mark: #376e50;
-  --warn-mark: #a8762a;
-  --bad-mark: #b4463c;
-  --none-mark: #d3d3cf;
+  --ground: #f5f6f9;
+  --ink: #161a26;
+  --ink-soft: #444b5c;
+  --muted: #646b7d;
+  --line: #e3e6ed;
+  --bar: #d3d8e3;
+  --navy: #1c2540;
+  --on-navy: #f5f6f9;
+  /* 강조는 남색 하나. 이름은 예전 그대로 blue */
+  --blue: #1f2f6e;
+  --blue-soft: #eceff7;
+  /* 판정색: 순항은 남색 계열, 문제는 호박 노랑 한 계열의 옅고 짙음 */
+  --ok: #34436e;
+  --ok-soft: #eef1f8;
+  --warn: #6b5000;
+  --warn-soft: #fcf5da;
+  --bad: #7a5600;
+  --bad-soft: #f8e6b0;
+  /* 그래프·막대에서 판정색을 면으로 칠할 때 */
+  --ok-mark: #8fa0cc;
+  --warn-mark: #f2d675;
+  --bad-mark: #e3a511;
+  --none-mark: #e2e5ec;
+  /* 노랑 면 위 글자 */
+  --on-bad: #261a00;
+  /* 선택 상자 화살표 */
+  --chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M4 6l4 4 4-4' fill='none' stroke='%23444b5c' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
   --font-display:
     'Noto Sans KR', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
   --font-body:
@@ -47,35 +53,37 @@
   --r-md: 10px;
   --r-lg: 16px;
   --r-pill: 999px;
-  --shadow-card: 0 12px 32px -12px rgba(31, 35, 40, 0.35), 0 0 0 1px #e7e6e3;
-  --shadow-card-hover: 0 0 0 2px #4a63a8;
+  --shadow-card: 0 12px 32px -12px rgba(22, 26, 38, 0.35), 0 0 0 1px #e3e6ed;
+  --shadow-card-hover: 0 0 0 2px #1f2f6e;
   color-scheme: light;
 }
 @media (prefers-color-scheme: dark) {
   :root {
-    --paper: #16181c;
-    --ground: #1e2126;
-    --ink: #ecedee;
-    --ink-soft: #bfc3c9;
-    --muted: #949aa3;
-    --line: #2e3238;
-    --bar: #3a3e45;
-    --navy: #3a3f48;
-    --on-navy: #ecedee;
-    --blue: #9db0e3;
-    --blue-soft: #232b3d;
-    --ok: #8cc7a5;
-    --ok-soft: #1c2b23;
-    --warn: #e2b36b;
-    --warn-soft: #2e2617;
-    --bad: #e5958c;
-    --bad-soft: #33201e;
-    --ok-mark: #8cc7a5;
-    --warn-mark: #e2b36b;
-    --bad-mark: #e5958c;
-    --none-mark: #3a3e45;
-    --shadow-card: 0 12px 32px -12px rgba(0, 0, 0, 0.7), 0 0 0 1px #2e3238;
-    --shadow-card-hover: 0 0 0 2px #9db0e3;
+    --paper: #121621;
+    --ground: #1a1f2c;
+    --ink: #e9ebf1;
+    --ink-soft: #bcc2cf;
+    --muted: #8f96a8;
+    --line: #2a3142;
+    --bar: #3a4256;
+    --navy: #2a3142;
+    --on-navy: #e9ebf1;
+    --blue: #aebcec;
+    --blue-soft: #232b46;
+    --ok: #b3c0e6;
+    --ok-soft: #1f2640;
+    --warn: #ecd27e;
+    --warn-soft: #2d2716;
+    --bad: #f5c451;
+    --bad-soft: #3a2c0c;
+    --ok-mark: #6f82b8;
+    --warn-mark: #a88a3c;
+    --bad-mark: #f0b429;
+    --none-mark: #3a4256;
+    --on-bad: #261a00;
+    --chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M4 6l4 4 4-4' fill='none' stroke='%23bcc2cf' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    --shadow-card: 0 12px 32px -12px rgba(0, 0, 0, 0.7), 0 0 0 1px #2a3142;
+    --shadow-card-hover: 0 0 0 2px #aebcec;
     color-scheme: dark;
   }
 }

@@ -26,6 +26,29 @@ export const STATUS_TONE: Record<AxisStatus, Tone> = {
   unknown: 'none',
 }
 
+/** 목록 요약에서 나쁜 상태부터 센다 */
+const GROUP_ORDER: ReadonlyArray<AxisStatus> = [
+  'fix',
+  'watch',
+  'on-track',
+  'unknown',
+]
+
+export interface StatusGroup {
+  status: AxisStatus
+  axes: AxisId[]
+}
+
+/** 상태별로 축을 묶는다. 축이 없는 상태는 뺀다 */
+export function groupByStatus(
+  axes: Record<AxisId, { status: AxisStatus }>,
+): StatusGroup[] {
+  return GROUP_ORDER.map((status) => ({
+    status,
+    axes: AXIS_IDS.filter((a) => axes[a].status === status),
+  })).filter((g) => g.axes.length > 0)
+}
+
 /** 점검 질문의 답 */
 export const ANSWERS = ['yes', 'no', 'open', 'none'] as const
 export type Answer = (typeof ANSWERS)[number]
