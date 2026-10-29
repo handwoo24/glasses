@@ -257,7 +257,68 @@ const LIMIT_PATTERN = /hit your limit|usage limit|rate limit|limit reached/i
 const AUTH_PATTERN =
   /UNAUTHENTICATED|PERMISSION_DENIED|invalid_grant|Could not load the default credentials|not logged in|Invalid API key/i
 
-/** 일꾼 하나를 띄우고 JSON 결과를 받는다. 남긴 것 없이 끝나면 한 번만 다시 부른다 */
+/** claude 한 번 띄우기: 원본 결과를 남기고, 비용을 적고, 모든 대상에 걸리는 오류면 전체를 멈춘다 */
+async function launch(
+  run: Run,
+  subject: string,
+  step: WorkerStep,
+  agent: string,
+  args: ReadonlyArray<string>,
+  /** 비용 표에 적을 이름 (Opus로 덮어쓴 고침은 따로 센다) */
+  label = agent,
+): Promise<ClaudeResult> {
+  if (run.aborted) throw new AbortAll(run.aborted)
+  const n = run.next()
+  const res = await run.slot(() =>
+    exec('claude', [
+      ...args,
+      '--agent',
+      agent,
+      '--setting-sources',
+      'project',
+      '--strict-mcp-config',
+      '--settings',
+      '.claude/loop.settings.json',
+      '--permission-mode',
+      'auto',
+      '--output-format',
+      'json',
+      '--json-schema',
+      jsonSchemaOf(step),
+    ]),
+  )
+  writeFileSync(
+    `${run.dir}/workers/${String(n).padStart(3, '0')}-${short(subject).replaceAll('/', '_')}-${step}.json`,
+    res.stdout || res.stderr,
+  )
+  const out = parseResult(res.stdout)
+  // 결과 JSON이 없으면 일꾼이 아니라 claude 실행(인자·설정·로그인)이 잘못된 것이라 모든 대상에 걸린다
+  if (!out) {
+    run.aborted = `claude 실행 오류: ${(res.stdout || res.stderr).trim().slice(0, 200)}`
+    throw new AbortAll(run.aborted)
+  }
+  run.costs.push({
+    subject,
+    step,
+    agent: label,
+    usd: out.total_cost_usd,
+    turns: out.num_turns,
+    ms: out.duration_ms,
+  })
+  if (out.is_error) {
+    const failure = `${out.result ?? ''} ${res.stderr}`.trim().slice(0, 200)
+    if (LIMIT_PATTERN.test(failure) || AUTH_PATTERN.test(failure)) {
+      run.aborted = `${LIMIT_PATTERN.test(failure) ? '사용량 한도' : '운영 접속 오류'}: ${failure}`
+      throw new AbortAll(run.aborted)
+    }
+  }
+  return out
+}
+
+/**
+ * 일꾼 하나를 띄우고 JSON 결과를 받는다. 일은 마쳤는데 JSON만 빠졌으면 같은 세션을 이어 JSON만 받는다(일을 다시 하지 않는다).
+ * 그래도 없거나 오류로 끝나면 처음부터 한 번만 다시 부른다
+ */
 async function worker<TStep extends WorkerStep>(
   run: Run,
   subject: string,
@@ -265,63 +326,55 @@ async function worker<TStep extends WorkerStep>(
   prompt: string,
   model?: 'opus',
 ): Promise<HandbackOf<TStep>> {
-  const agent =
+  const base =
     AGENTS[subject.includes('/vendors/') ? 'vendor' : 'program'][step]
+  const agent = model ? `${base}(opus)` : base
+  const modelArgs = model ? ['--model', model] : []
+  const accept = (out: ClaudeResult): HandbackOf<TStep> | null => {
+    const parsed = HANDBACKS[step].safeParse(out.structured_output)
+    if (out.is_error || !parsed.success) return null
+    const h = parsed.data as { summary: string; stumbles?: Array<string> }
+    run.log(subject, `${step} 끝: ${h.summary}`)
+    for (const s of h.stumbles ?? [])
+      run.stumbles.push(`- ${short(subject)} / ${step}: ${s}`)
+    return parsed.data as HandbackOf<TStep>
+  }
   for (let attempt = 1; attempt <= 2; attempt++) {
-    if (run.aborted) throw new AbortAll(run.aborted)
-    const n = run.next()
-    const res = await run.slot(() =>
-      exec('claude', [
-        '-p',
-        `${prompt}\n끝낼 때 결과는 주어진 JSON 스키마대로 돌려준다.`,
-        '--agent',
-        agent,
-        ...(model ? ['--model', model] : []),
-        '--setting-sources',
-        'project',
-        '--strict-mcp-config',
-        '--settings',
-        '.claude/loop.settings.json',
-        '--permission-mode',
-        'auto',
-        '--output-format',
-        'json',
-        '--json-schema',
-        jsonSchemaOf(step),
-      ]),
-    )
-    writeFileSync(
-      `${run.dir}/workers/${String(n).padStart(3, '0')}-${short(subject).replaceAll('/', '_')}-${step}.json`,
-      res.stdout || res.stderr,
-    )
-    const out = parseResult(res.stdout)
-    // 결과 JSON이 없으면 일꾼이 아니라 claude 실행(인자·설정·로그인)이 잘못된 것이라 모든 대상에 걸린다
-    if (!out) {
-      run.aborted = `claude 실행 오류: ${(res.stdout || res.stderr).trim().slice(0, 200)}`
-      throw new AbortAll(run.aborted)
-    }
-    run.costs.push({
+    const out = await launch(
+      run,
       subject,
       step,
-      agent: model ? `${agent}(opus)` : agent,
-      usd: out.total_cost_usd,
-      turns: out.num_turns,
-      ms: out.duration_ms,
-    })
-    if (out.is_error) {
-      const failure = `${out.result ?? ''} ${res.stderr}`.trim().slice(0, 200)
-      if (LIMIT_PATTERN.test(failure) || AUTH_PATTERN.test(failure)) {
-        run.aborted = `${LIMIT_PATTERN.test(failure) ? '사용량 한도' : '운영 접속 오류'}: ${failure}`
-        throw new AbortAll(run.aborted)
-      }
-    }
-    const parsed = HANDBACKS[step].safeParse(out.structured_output)
-    if (!out.is_error && parsed.success) {
-      const h = parsed.data as { summary: string; stumbles?: Array<string> }
-      run.log(subject, `${step} 끝: ${h.summary}`)
-      for (const s of h.stumbles ?? [])
-        run.stumbles.push(`- ${short(subject)} / ${step}: ${s}`)
-      return parsed.data as HandbackOf<TStep>
+      base,
+      [
+        '-p',
+        `${prompt}\n끝낼 때 결과는 주어진 JSON 스키마대로 돌려준다.`,
+        ...modelArgs,
+      ],
+      agent,
+    )
+    const done = accept(out)
+    if (done) return done
+    if (!out.is_error && out.session_id) {
+      run.log(
+        subject,
+        `${step} 일은 끝났는데 JSON이 없어 같은 세션에서 JSON만 받음`,
+      )
+      const again = await launch(
+        run,
+        subject,
+        step,
+        base,
+        [
+          '-p',
+          '조사·작업을 다시 하지 않는다. 방금 끝낸 일의 결과만 주어진 JSON 스키마대로 돌려준다.',
+          '--resume',
+          out.session_id,
+          ...modelArgs,
+        ],
+        agent,
+      )
+      const resumed = accept(again)
+      if (resumed) return resumed
     }
     run.log(
       subject,
@@ -333,6 +386,7 @@ async function worker<TStep extends WorkerStep>(
 
 interface ClaudeResult {
   is_error: boolean
+  session_id?: string
   subtype: string
   result?: string
   structured_output?: unknown

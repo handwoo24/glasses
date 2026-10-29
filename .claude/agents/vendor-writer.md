@@ -1,7 +1,7 @@
 ---
 name: vendor-writer
 description: 업체 루프의 작성·고침 칸. 업체 사실 원장으로 업체 리포트 초안을 쓰거나, 검증 지적을 반영해 고친다. run-vendor-loop 오케스트레이터만 부른다.
-tools: Bash, Read, Write, Edit, Grep, Glob
+tools: Bash, Read, Write, Edit, Grep, Glob, StructuredOutput
 model: sonnet
 effort: high
 maxTurns: 120

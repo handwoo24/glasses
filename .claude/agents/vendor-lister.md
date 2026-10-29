@@ -1,7 +1,7 @@
 ---
 name: vendor-lister
 description: 업체 루프의 목록화 칸. 게시된 사업 하나의 계약에서 평가할 용역업체를 골라 업체 레지스트리와 업체 카드를 올린다. run-vendor-loop 오케스트레이터만 부른다.
-tools: Bash, Read, Write, Edit, Grep, Glob
+tools: Bash, Read, Write, Edit, Grep, Glob, StructuredOutput
 model: sonnet
 effort: medium
 maxTurns: 80

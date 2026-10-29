@@ -1,7 +1,7 @@
 ---
 name: report-extractor
 description: 리포트 루프·업체 루프의 발췌 칸. 자료 한 건을 읽고 사업(또는 사업 안의 업체) 평가에 쓸 인용 후보를 JSON 파일로 남긴다. run-loop·run-vendor-loop 오케스트레이터만 부른다.
-tools: Bash, Read, Write, Grep
+tools: Bash, Read, Write, Grep, StructuredOutput
 model: haiku
 effort: medium
 maxTurns: 40
