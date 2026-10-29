@@ -79,7 +79,7 @@ export function g2bItems(json: unknown): {
   const raw = r?.body?.items
   const inner =
     raw && !Array.isArray(raw) && typeof raw === 'object' && 'item' in raw
-      ? (raw as { item: unknown }).item
+      ? raw.item
       : raw
   const items = (
     inner === undefined || inner === '' ? [] : [inner].flat()
