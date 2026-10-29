@@ -30,11 +30,13 @@ import type { Backlink } from '#/features/reports/view/doc-sections'
 import {
   AxisFactList,
   CitedText,
-  DDay,
   Fold,
-  OverallEvidenceMark,
   StatusBadge,
 } from '#/features/reports/view/parts'
+import {
+  NextTimeline,
+  VerdictStrip,
+} from '#/features/reports/view/verdict-band'
 import { useOpenDetailsOnHash } from '#/features/reports/view/use-open-details-on-hash'
 import {
   OWNER_LABEL,
@@ -57,8 +59,6 @@ const AXIS_GROUPS: ReadonlyArray<readonly [AxisStatus, string, string]> = [
   ['on-track', 'good', '잘 되고 있는 점'],
   ['unknown', 'unknown', '아직 판단할 수 없는 것'],
 ]
-
-const METER: ReadonlyArray<AxisStatus> = ['on-track', 'watch', 'fix']
 
 interface PageSection {
   id: string
@@ -91,38 +91,9 @@ export function VendorReportPage({ doc: K }: { doc: VendorReportDoc }) {
       <div className="page">
         <div className="rp">
           <Hero doc={K} />
-          <div className="rp-top vr-top">
-            <section
-              className={`rp-verdict ${STATUS_TONE[j.overall]}`}
-              id="verdict"
-              aria-labelledby="t-verdict"
-            >
-              <div className="top">
-                <h2 id="t-verdict" className="label">
-                  종합 판정
-                </h2>
-                <OverallEvidenceMark level={j.evidence} />
-              </div>
-              <div className="mid">
-                <p className="big">{STATUS_INFO[j.overall].overall}</p>
-                <div
-                  className="meter"
-                  role="img"
-                  aria-label={`판정 미터: 순항, 지켜볼 점 있음, 개선 필요 가운데 ${STATUS_INFO[j.overall].overall}`}
-                >
-                  {METER.map((s) => (
-                    <span
-                      key={s}
-                      className={s === j.overall ? 'on' : undefined}
-                    >
-                      <i />
-                      {STATUS_INFO[s].overall}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            </section>
-            <NextCard doc={K} />
+          <div className="vb">
+            <VerdictStrip overall={j.overall} evidence={j.evidence} />
+            <NextTimeline dates={K.nextDates} nextReview={K.nextReview} />
           </div>
           <section className="vr-axes" aria-labelledby="t-vaxes">
             <h2 id="t-vaxes" className="label">
@@ -289,36 +260,6 @@ function Hero({ doc: K }: { doc: VendorReportDoc }) {
         <span>업체 평가 체계 v{AXES_VERSION}</span>
       </p>
     </header>
-  )
-}
-
-function NextCard({ doc: K }: { doc: VendorReportDoc }) {
-  const first = K.nextDates.at(0)
-  const rest = K.nextDates.slice(1)
-  return (
-    <section className="rp-next" aria-labelledby="t-next">
-      <h2 id="t-next" className="label">
-        다음 판단 시점
-      </h2>
-      {first && (
-        <>
-          <p className="big">
-            {first.when} <DDay date={first.date} />
-          </p>
-          <p className="what">{first.what}</p>
-        </>
-      )}
-      {rest.length > 0 && (
-        <ol>
-          {rest.map((d, i) => (
-            <li key={`${i}-${d.when}`}>
-              <b>{d.when}</b> {d.what}
-            </li>
-          ))}
-        </ol>
-      )}
-      <p className="foot">다음 갱신 예정 {K.nextReview}</p>
-    </section>
   )
 }
 

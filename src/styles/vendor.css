@@ -1,13 +1,4 @@
-/* 업체 리포트: 판정 카드와 다음 판단 시점은 높이를 맞추고, 그 아래 6개 축 요약이 설명을 맡는다 */
-.vr-top {
-  align-items: stretch;
-}
-.vr-top .rp-verdict {
-  grid-template-rows: auto 1fr;
-}
-.vr-top .rp-verdict .mid {
-  align-self: center;
-}
+/* 업체 리포트: 판정 띠 아래 6개 축 요약이 설명을 맡는다 */
 .vr-axes {
   display: grid;
   gap: var(--sp-3);
