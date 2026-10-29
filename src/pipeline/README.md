@@ -53,6 +53,12 @@ publishedVendors/{주소}                  사이트에 보이는 업체 리포�
 - 사이트의 리포트 주소는 평가 대상 경로다: `/programs/{기관코드}.{사업}`, `/orgs/{기관코드}/budgets/{연도-구분}`. 옛 주소 `/reports/{slug}`는 새 주소로 넘긴다.
 - 회의록 인용의 사람 이름은 `○○○`로 가린다(`○스마트시티과장 ○○○`, `○ ○○○ 위원`).
 
+### 목록 스냅샷
+
+기관 고르기·기관 페이지·사업 목록은 원본 컬렉션을 읽지 않고 목록 스냅샷을 읽는다([`snapshot.server.ts`](../features/directory/server/snapshot.server.ts)). 도구가 기관·사업 카드·재정 문서·게시 문서를 쓰면(`put`, `put-many`, `publish`) 스냅샷을 다시 만들어 `meta/directory/chunks/`에 조각으로 쓰고 `meta/directory`의 버전을 올린다. 사이트 서버는 60초마다 버전만 확인한다.
+
+도구를 거치지 않고 Firebase 콘솔 등에서 그 문서들을 고쳤으면 `npm run pipeline -- index`로 스냅샷을 다시 만든다. 스냅샷 양식(`snapshot.ts`)이나 거기 쓰는 양식을 바꿔 배포할 때도 같다. `meta/directory`가 없으면 서버는 원본을 직접 읽는다.
+
 ## 작업 현황
 
 사이트 `/orgs/{기관코드}/programs`가 기관의 사업 카드와 각 사업의 작업 단계를 보여 준다. 단계는 따로 적지 않고 남은 산출물로 정한다([`stage.ts`](../features/worklist/stage.ts)): 자료가 있으면 수집, 사실·부재 기록이 있으면 분석, 리포트 초안이면 작성, 검토 요청이면 검증, 마지막 검증이 fail이면 고침, pass면 게시 대기, `published/`에 있으면 게시.

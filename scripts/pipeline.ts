@@ -4,12 +4,14 @@ import { readFileSync } from 'node:fs'
 import { extname } from 'node:path'
 import { parse as parseYaml } from 'yaml'
 import { checkFacts } from '#/pipeline/check'
-import { PATH_HELP } from '#/pipeline/paths'
+import { PATH_HELP, resolve } from '#/pipeline/paths'
+import type { Kind } from '#/pipeline/paths'
 import { publish } from '#/pipeline/publish'
 import { claim, done, enqueue, fail } from '#/pipeline/queue'
 import { STAGES } from '#/pipeline/schemas'
 import type { Stage } from '#/pipeline/schemas'
 import { get, list, put } from '#/pipeline/store'
+import { writeSnapshot } from '#/features/directory/server/snapshot.server'
 import { readOrgWorklist } from '#/features/worklist/server/worklist.server'
 import { readVendorWorklist } from '#/pipeline/vendor-worklist'
 
@@ -27,6 +29,7 @@ const USAGE = `사용법: npm run pipeline -- <명령>
   publish <리포트 경로>          게시 대기(고친 뒤 마지막 검증 pass, check-facts 통과)인 판만 게시
                                 업체 리포트(programs/…/vendors/…/reports/…)는 publishedVendors/{주소}로
   vendor-worklist [기관코드]     업체 루프 조사 목록: 업체 목록화가 남은 게시 사업과 업체 카드별 단계
+  index                         목록 스냅샷을 다시 만든다. 기관·사업 카드·재정 문서·게시 문서를 쓰면 저절로 한다
 단계: ${STAGES.join(', ')}
 문서 경로:
   ${PATH_HELP.join('\n  ')}`
@@ -104,12 +107,14 @@ async function putMany(file: string) {
     seen.add(path)
   }
   const failed: Array<{ path: string; error: string }> = []
+  const written: Array<string> = []
   let next = 0
   const worker = async () => {
     while (next < entries.length) {
       const { path, value } = entries[next++]
       try {
         await put(path, value)
+        written.push(path)
       } catch (e) {
         failed.push({ path, error: e instanceof Error ? e.message : String(e) })
       }
@@ -119,8 +124,39 @@ async function putMany(file: string) {
   if (failed.length) process.exitCode = 1
   return {
     ok: failed.length === 0,
-    written: entries.length - failed.length,
+    written: written.length,
+    listed: written.some(isListed),
     failed,
+  }
+}
+
+/** 목록 스냅샷에 들어가는 문서 종류. 이것을 쓰면 스냅샷을 다시 만든다 */
+const LISTED: ReadonlySet<Kind> = new Set([
+  'org',
+  'program',
+  'budget',
+  'published',
+])
+
+const isListed = (path: string) => LISTED.has(resolve(path).kind)
+
+async function reindex() {
+  const built = await writeSnapshot()
+  process.stderr.write(
+    `[index] 목록 스냅샷 ${built.version} (${built.chunks}조각, ${built.bytes}바이트)\n`,
+  )
+  return built
+}
+
+/** 문서는 이미 썼으므로 스냅샷이 실패해도 쓰기 결과는 그대로 알리고, 다시 만들 명령을 남긴다 */
+async function reindexAfterWrite(): Promise<void> {
+  try {
+    await reindex()
+  } catch (e) {
+    process.exitCode = 1
+    process.stderr.write(
+      `[index] 문서는 썼지만 목록 스냅샷을 만들지 못했다. npm run pipeline -- index 로 다시 만든다: ${e instanceof Error ? e.message : String(e)}\n`,
+    )
   }
 }
 
@@ -146,11 +182,14 @@ async function run(argv: ReadonlyArray<string>): Promise<void> {
       const value = readValue(b, named.status?.at(0))
       if (a.includes('/reviews/')) notInFuture(value, 'reviewedAt')
       await put(a, value)
+      if (isListed(a)) await reindexAfterWrite()
       return print({ ok: true, path: a })
     }
     case 'put-many': {
       if (!a) throw new Error(USAGE)
-      return print(await putMany(a))
+      const result = await putMany(a)
+      if (result.listed) await reindexAfterWrite()
+      return print(result)
     }
     case 'get':
       return print(orNull(await get(a)))
@@ -179,8 +218,13 @@ async function run(argv: ReadonlyArray<string>): Promise<void> {
     }
     case 'fail':
       return print(await fail(a, [b, ...more].join(' ')))
-    case 'publish':
-      return print({ ok: true, report: a, ...(await publish(a)) })
+    case 'publish': {
+      const published = await publish(a)
+      await reindexAfterWrite()
+      return print({ ok: true, report: a, ...published })
+    }
+    case 'index':
+      return print({ ok: true, ...(await reindex()) })
     case 'worklist': {
       const worklist = await readOrgWorklist(a)
       if (!worklist) throw new Error(`기관 없음: ${a}`)

@@ -61,14 +61,14 @@ async function readPublished(): Promise<ReadonlyArray<ReportDoc>> {
 export const publishedDocs = memo(readPublished)
 
 /** 홈·목록용 요약. 게시 문서에 저장된 요약을 쓰고, 요약이 없는 옛 게시 문서가 있으면 리포트를 읽어 만든다 */
-export const publishedSummaries = memo(
-  async (): Promise<ReadonlyArray<ReportSummary>> => {
-    const entries = await readEntries()
-    const stored = entries.flatMap((e) => (e.summary ? [e.summary] : []))
-    if (stored.length === entries.length) return stored
-    return (await publishedDocs()).map(toSummary)
-  },
-)
+export async function readSummaries(): Promise<ReadonlyArray<ReportSummary>> {
+  const entries = await readEntries()
+  const stored = entries.flatMap((e) => (e.summary ? [e.summary] : []))
+  if (stored.length === entries.length) return stored
+  return (await readPublished()).map(toSummary)
+}
+
+export const publishedSummaries = memo(readSummaries)
 
 export async function getReportDoc(
   slug: string,
