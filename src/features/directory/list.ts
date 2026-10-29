@@ -1,12 +1,7 @@
-// 사업 목록(/programs)과 기관 페이지가 함께 쓰는 게시 리포트 목록: 지역·부처·분야·판정 필터와 정렬.
-// 주소의 검색 조건(?region=&ministry=&field=&verdict=&kind=&sort=)으로 정한다.
-import { z } from 'zod'
+// 홈·지역·기관 페이지가 함께 쓰는 게시 리포트 목록 한 줄과 정렬, 시도 이름, 금액 표기.
 import { summarize } from '#/features/reports/assessment'
-import { AXIS_STATUSES } from '#/features/reports/axes'
 import type { AxisStatus } from '#/features/reports/axes'
 import type { ReportSummary } from '#/features/reports/summary'
-import { ORG_ID } from '#/pipeline/schemas'
-import { PageSchema } from './paging'
 import type { Org } from '#/pipeline/schemas'
 
 /** 시도 행정구역 코드 2자리 → 이름 (행정표준코드관리시스템 법정동 코드) */
@@ -35,39 +30,8 @@ export function sidoOf(region: string | undefined): string | undefined {
   return region ? SIDO[region.slice(0, 2)] : undefined
 }
 
-export const LIST_SORTS = {
-  next: '다음 판단 시점이 가까운 순',
-  recent: '최근 평가 순',
-  heavy: '판정이 무거운 순',
-} as const
-export type ListSort = keyof typeof LIST_SORTS
-
-export const KINDS = { program: '사업만', budget: '재정 문서만' } as const
-export type ListKind = keyof typeof KINDS
-
-export const ProgramsSearchSchema = z.object({
-  // 주소의 ?region=41 은 숫자로 읽힌다
-  region: z.coerce
-    .string()
-    .regex(/^\d{2}$/)
-    .optional()
-    .catch(undefined),
-  ministry: z.coerce.string().regex(ORG_ID).optional().catch(undefined),
-  /** 기관 하나 (기관 페이지의 ‘더 보기’) */
-  org: z.coerce.string().regex(ORG_ID).optional().catch(undefined),
-  field: z.string().min(1).optional().catch(undefined),
-  verdict: z.enum(AXIS_STATUSES).optional().catch(undefined),
-  kind: z
-    .enum(Object.keys(KINDS) as [ListKind, ...Array<ListKind>])
-    .optional()
-    .catch(undefined),
-  sort: z
-    .enum(Object.keys(LIST_SORTS) as [ListSort, ...Array<ListSort>])
-    .optional()
-    .catch(undefined),
-  page: PageSchema,
-})
-export type ProgramsSearch = z.infer<typeof ProgramsSearchSchema>
+/** 게시 리포트의 평가 대상: 사업 또는 재정 문서 */
+export type ListKind = 'program' | 'budget'
 
 /** 목록 한 줄: 게시 요약에 평가 대상의 기관·지역·부처·분야를 붙인 것 */
 export interface ListedReport {
@@ -123,31 +87,14 @@ export function listedReport(
   }
 }
 
-export function filterReports(
+/** 판정이 무거운 순, 같으면 최근 평가 순 */
+export function heavyFirst(
   rows: ReadonlyArray<ListedReport>,
-  search: ProgramsSearch,
-  today: string,
 ): Array<ListedReport> {
-  const kept = rows.filter(
-    (r) =>
-      (!search.region || r.region?.startsWith(search.region)) &&
-      (!search.ministry || r.ministries.includes(search.ministry)) &&
-      (!search.org || r.org === search.org) &&
-      (!search.field || r.sector === search.field) &&
-      (!search.verdict || r.overall === search.verdict) &&
-      (!search.kind || r.kind === search.kind),
-  )
-  const sort = search.sort ?? 'next'
-  const nextKey = (r: ListedReport) =>
-    nextDateOf(r.summary, today)?.date ?? '9999'
-  return [...kept].sort((a, b) =>
-    sort === 'recent'
-      ? b.asOfIso.localeCompare(a.asOfIso)
-      : sort === 'heavy'
-        ? WEIGHT[a.overall] - WEIGHT[b.overall] ||
-          b.asOfIso.localeCompare(a.asOfIso)
-        : nextKey(a).localeCompare(nextKey(b)) ||
-          WEIGHT[a.overall] - WEIGHT[b.overall],
+  return [...rows].sort(
+    (a, b) =>
+      WEIGHT[a.overall] - WEIGHT[b.overall] ||
+      b.asOfIso.localeCompare(a.asOfIso),
   )
 }
 

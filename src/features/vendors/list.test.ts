@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { VendorsSearchSchema, filterVendors } from './list'
+import { VendorsSearchSchema, filterVendors, vendorSidoCounts } from './list'
 import type { Engagement, VendorListItem } from './list'
 
 function eng(org: string, region: string, amount: number): Engagement {
@@ -22,12 +22,14 @@ const items: Array<VendorListItem> = [
   {
     bizno: '1234567890',
     name: '주식회사 가나',
+    home: '경기도 고양시 일산동구',
     engagements: [eng('3940000', '41280', 3e9)],
     amount: 3e9,
   },
   {
     bizno: '2223334445',
     name: '다라 주식회사',
+    home: '서울특별시 중구',
     engagements: [eng('6110000', '11', 1e9), eng('3940000', '41280', 1e9)],
     amount: 2e9,
   },
@@ -64,5 +66,23 @@ describe('용역 목록', () => {
       VendorsSearchSchema.parse({ region: 11, org: 3940000, page: '2' }),
     ).toEqual({ region: '11', org: '3940000', page: 2 })
     expect(VendorsSearchSchema.parse({ sort: 'x', q: '  ' })).toEqual({})
+  })
+})
+
+describe('용역 지도', () => {
+  it('본사 소재지 시도로 고른다', () => {
+    expect(names({ home: '41' })).toEqual(['주식회사 가나'])
+    expect(names({ home: '11' })).toEqual(['다라 주식회사'])
+  })
+  it('소재지 기준은 업체마다 한 번, 발주 기관 기준은 시도마다 한 번 센다', () => {
+    expect(vendorSidoCounts(items, 'home')).toEqual({ '41': 1, '11': 1 })
+    expect(vendorSidoCounts(items, 'org')).toEqual({ '41': 2, '11': 2 })
+  })
+  it('지도 기준은 소재지가 기본이고 모르는 값은 버린다', () => {
+    expect(VendorsSearchSchema.parse({ by: 'org', home: 41 })).toMatchObject({
+      by: 'org',
+      home: '41',
+    })
+    expect(VendorsSearchSchema.parse({ by: 'x' }).by).toBeUndefined()
   })
 })

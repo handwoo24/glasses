@@ -7,9 +7,16 @@ import { StatusBadge } from '#/features/reports/view/parts'
 import { SIDO, won } from '#/features/directory/list'
 import { paginate } from '#/features/directory/paging'
 import { Pager } from '#/features/directory/view/pager'
+import { SIDO_TILES } from '#/features/directory/regions'
+import { SidoMap } from '#/features/directory/view/sido-map'
 import { stageTone } from '#/features/worklist/list'
-import { VENDOR_SORTS, filterVendors } from '../list'
-import type { Engagement, VendorListItem, VendorsSearch } from '../list'
+import { VENDOR_SORTS, filterVendors, vendorSidoCounts } from '../list'
+import type {
+  Engagement,
+  VendorListItem,
+  VendorMapBasis,
+  VendorsSearch,
+} from '../list'
 
 interface VendorsPageProps {
   items: ReadonlyArray<VendorListItem>
@@ -54,93 +61,183 @@ export function VendorsPage({ items, orgs, search }: VendorsPageProps) {
           </p>
         </header>
 
-        <form
-          aria-label="필터"
-          className="filters"
-          onSubmit={(e) => {
-            e.preventDefault()
-            const q = new FormData(e.currentTarget).get('q')
-            set({ q: typeof q === 'string' && q.trim() ? q.trim() : undefined })
-          }}
-        >
-          <SearchBox value={search.q} />
-          <Select
-            id="v-region"
-            label="지역"
-            value={search.region}
-            all="전국"
-            options={regions}
-            onChange={(region) => set({ region })}
-          />
-          <Select
-            id="v-org"
-            label="발주 기관"
-            value={search.org}
-            all="전체"
-            options={orgs.map((o) => [o.id, o.name] as const)}
-            onChange={(org) => set({ org })}
-          />
-          <Select
-            id="v-verdict"
-            label="업체 판정"
-            value={search.verdict}
-            all="전체"
-            options={VERDICTS.map((v) => [v, STATUS_INFO[v].overall] as const)}
-            onChange={(v) => set({ verdict: v as VendorsSearch['verdict'] })}
-          />
-          <Select
-            id="v-sort"
-            label="정렬"
-            value={search.sort}
-            all={VENDOR_SORTS.amount}
-            options={Object.entries(VENDOR_SORTS).filter(
-              ([k]) => k !== 'amount',
-            )}
-            onChange={(s) => set({ sort: s as VendorsSearch['sort'] })}
-            className="sort"
-          />
-        </form>
+        <div className="vendor-layout">
+          <VendorMap items={items} search={search} />
+          <div className="vendor-main">
+            <form
+              aria-label="필터"
+              className="filters"
+              onSubmit={(e) => {
+                e.preventDefault()
+                const q = new FormData(e.currentTarget).get('q')
+                set({
+                  q: typeof q === 'string' && q.trim() ? q.trim() : undefined,
+                })
+              }}
+            >
+              <SearchBox value={search.q} />
+              <Select
+                id="v-region"
+                label="발주 지역"
+                value={search.region}
+                all="전국"
+                options={regions}
+                onChange={(region) => set({ region })}
+              />
+              <Select
+                id="v-org"
+                label="발주 기관"
+                value={search.org}
+                all="전체"
+                options={orgs.map((o) => [o.id, o.name] as const)}
+                onChange={(org) => set({ org })}
+              />
+              <Select
+                id="v-verdict"
+                label="업체 판정"
+                value={search.verdict}
+                all="전체"
+                options={VERDICTS.map(
+                  (v) => [v, STATUS_INFO[v].overall] as const,
+                )}
+                onChange={(v) =>
+                  set({ verdict: v as VendorsSearch['verdict'] })
+                }
+              />
+              <Select
+                id="v-sort"
+                label="정렬"
+                value={search.sort}
+                all={VENDOR_SORTS.amount}
+                options={Object.entries(VENDOR_SORTS).filter(
+                  ([k]) => k !== 'amount',
+                )}
+                onChange={(s) => set({ sort: s as VendorsSearch['sort'] })}
+                className="sort"
+              />
+            </form>
 
-        <section className="rp-sec" aria-labelledby="v-list">
-          <div className="rp-sh">
-            <h2 id="v-list">
-              업체 <span className="dir-n">{rows.length}</span>
-            </h2>
+            <section className="rp-sec" aria-labelledby="v-list">
+              <div className="rp-sh">
+                <h2 id="v-list">
+                  업체 <span className="dir-n">{rows.length}</span>
+                </h2>
+              </div>
+              {rows.length > 0 ? (
+                <>
+                  <ol className="vl-rows">
+                    {paged.rows.map((v) => (
+                      <VendorItem key={v.bizno} v={v} />
+                    ))}
+                  </ol>
+                  <Pager paged={paged} label="용역업체 목록 쪽" />
+                </>
+              ) : (
+                <div className="empty-state">
+                  <p className="big">
+                    {items.length
+                      ? '조건에 맞는 업체가 없습니다'
+                      : '아직 목록에 올린 업체가 없습니다'}
+                  </p>
+                  <p>
+                    업체는 사업 리포트를 게시한 뒤 계약 기록에서 찾아 올립니다.
+                    지금은 게시된 사업의 업체만 있습니다.
+                  </p>
+                  <p className="links">
+                    <Link to="/vendors">필터 지우기</Link>
+                    <Link to="/">평가한 사업 보기</Link>
+                  </p>
+                </div>
+              )}
+              <p className="dir-none">
+                금액은 평가 대상 사업 안 계약의 합계입니다. 판정은 게시된 업체
+                리포트만 보입니다. 부정당 제재는 조달청 나라장터에서 조회한 그날
+                유효한 제재 수입니다.
+              </p>
+            </section>
           </div>
-          {rows.length > 0 ? (
-            <>
-              <ol className="vl-rows">
-                {paged.rows.map((v) => (
-                  <VendorItem key={v.bizno} v={v} />
-                ))}
-              </ol>
-              <Pager paged={paged} label="용역업체 목록 쪽" />
-            </>
-          ) : (
-            <div className="empty-state">
-              <p className="big">
-                {items.length
-                  ? '조건에 맞는 업체가 없습니다'
-                  : '아직 목록에 올린 업체가 없습니다'}
-              </p>
-              <p>
-                업체는 사업 리포트를 게시한 뒤 계약 기록에서 찾아 올립니다.
-                지금은 게시된 사업의 업체만 있습니다.
-              </p>
-              <p className="links">
-                <Link to="/vendors">필터 지우기</Link>
-                <Link to="/programs">평가한 사업 보기</Link>
-              </p>
-            </div>
-          )}
-          <p className="dir-none">
-            금액은 평가 대상 사업 안 계약의 합계입니다. 판정은 게시된 업체
-            리포트만 보입니다. 부정당 제재는 조달청 나라장터에서 조회한 그날
-            유효한 제재 수입니다.
-          </p>
-        </section>
+        </div>
       </div>
     </div>
+  )
+}
+
+const BASIS_LABEL: Record<VendorMapBasis, string> = {
+  home: '업체 소재지',
+  org: '발주 기관 지역',
+}
+
+/** 시도 지도: 소재지 기준이면 ?home=, 발주 기관 기준이면 ?region= 으로 고른다 */
+function VendorMap({
+  items,
+  search,
+}: {
+  items: ReadonlyArray<VendorListItem>
+  search: VendorsSearch
+}) {
+  const by = search.by ?? 'home'
+  const counts = vendorSidoCounts(items, by)
+  const selected = by === 'home' ? search.home : search.region
+  const tones = Object.fromEntries(
+    Object.keys(SIDO_TILES).map((code) => [
+      code,
+      counts[code] ? ('has' as const) : ('empty' as const),
+    ]),
+  )
+  return (
+    <aside className="vendor-side">
+      <nav className="seg" aria-label="지도 기준">
+        {(['home', 'org'] as const).map((b) => (
+          <Link
+            key={b}
+            to="/vendors"
+            // 기준을 바꾸면 시도 고르기만 풀고 다른 필터는 둔다
+            search={{
+              ...search,
+              by: b === 'home' ? undefined : b,
+              home: undefined,
+              region: undefined,
+              page: undefined,
+            }}
+            // 빈 조건 링크가 모든 주소에서 ‘현재’로 잡히지 않게 정확히 같을 때만
+            activeOptions={{ exact: true, includeSearch: true }}
+            aria-current={by === b ? 'page' : undefined}
+          >
+            {BASIS_LABEL[b]}
+          </Link>
+        ))}
+      </nav>
+      <SidoMap
+        tones={tones}
+        selected={selected}
+        size="sm"
+        label={`${BASIS_LABEL[by]}별 업체`}
+        tile={({ code, short, className }) => (
+          <Link
+            to="/vendors"
+            activeOptions={{ exact: true, includeSearch: true }}
+            search={{
+              ...search,
+              page: undefined,
+              ...(by === 'home'
+                ? { home: selected === code ? undefined : code }
+                : { region: selected === code ? undefined : code }),
+            }}
+            className={className}
+            aria-current={code === selected ? 'true' : undefined}
+          >
+            {short}
+            {counts[code] ? <span className="s">{counts[code]}</span> : null}
+          </Link>
+        )}
+      />
+      <p className="dir-none">
+        {by === 'home'
+          ? '업체 본사가 있는 시도. ‘발주 기관 지역’으로 바꾸면 업체가 일을 맡은 사업의 기관 기준으로 다시 셉니다.'
+          : '업체가 일을 맡은 사업의 기관이 있는 시도. 한 업체가 여러 시도에서 일하면 시도마다 셉니다.'}{' '}
+        같은 시도를 한 번 더 누르면 고른 것이 풀립니다.
+      </p>
+    </aside>
   )
 }
 
