@@ -2,6 +2,8 @@
 // 절차와 판단 기준은 .claude/skills/list-programs/SKILL.md. 예:
 //   npm run catalog -- pdf-text .storage/materials/m-…/original.pdf /tmp/main.txt
 //   npm run catalog -- candidates --lines .storage/materials/m-…/original.json --book /tmp/main.txt --book /tmp/supp3.txt --out /tmp/candidates.json
+//   npm run catalog -- hwp-text .storage/materials/m-…/original.hwp .storage/materials/m-…/text.txt
+//   npm run catalog -- g2b as/ScsbidInfoService getOpengResultListInfoOpengCompt bidNtceNo=R25BK01190528 --out run/rank.json
 import { readFileSync, writeFileSync } from 'node:fs'
 import { z } from 'zod'
 import {
@@ -13,11 +15,19 @@ import {
   parseBudgetBook,
 } from '#/pipeline/catalog/budget-book'
 import type { BookLine } from '#/pipeline/catalog/budget-book'
+import { g2bFetch, g2bItems } from '#/pipeline/catalog/g2b'
+import { hwpText } from '#/pipeline/catalog/hwp'
 
 const USAGE = `사용법: npm run catalog -- <명령>
   pdf-text <예산서.pdf> <출력.txt>             쪽마다 "=== page N ===" 를 붙인 텍스트
   candidates --lines <지방재정365.json> --book <예산서.txt> [--book …] --out <후보.json>
-                                              세부사업에 부서·정책·단위를 붙이고, 행정경비를 빼고, 같은 이름을 합친다`
+                                              세부사업에 부서·정책·단위를 붙이고, 행정경비를 빼고, 같은 이름을 합친다
+  hwp-text <원본.hwp> <출력.txt>              한글(HWP 5) 본문 글자. 문단마다 한 줄
+  g2b <서비스> <기능> [이름=값 …] --out <파일.json>
+                                              나라장터 OpenAPI 한 번 호출 (DATA_GO_KR_SERVICE_KEY).
+                                              대표자·담당자 이름과 연락처는 지우고 저장한다
+    서비스: as/ScsbidInfoService(낙찰·개찰) ao/CntrctInfoService(계약)
+            ad/BidPublicInfoService(입찰공고) ao/UsrInfoService02(업체·부정당 제재)`
 
 /** 지방재정365 세부사업별 세출현황 응답 한 줄 (retvLstExcDtlsBybsnAneSitu.do) */
 const LofinRowSchema = z.object({
@@ -174,9 +184,58 @@ function option(args: ReadonlyArray<string>, name: string): Array<string> {
   )
 }
 
+function hwpToText(input: string, output: string) {
+  const text = hwpText(readFileSync(input))
+  writeFileSync(output, text)
+  process.stdout.write(`${text.split('\n').length - 1}줄 → ${output}\n`)
+}
+
+/** 요청 값과 사람 정보를 지운 응답을 함께 남긴다. 자료로 올릴 때 원본 파일이 된다 */
+async function g2b(
+  service: string,
+  operation: string,
+  pairs: ReadonlyArray<string>,
+  out: string,
+) {
+  const params = Object.fromEntries(
+    pairs.map((p) => {
+      const i = p.indexOf('=')
+      if (i < 1) throw new Error(`이름=값 꼴이 아니다: ${p}`)
+      return [p.slice(0, i), p.slice(i + 1)]
+    }),
+  )
+  const response = await g2bFetch(service, operation, params)
+  const { items, total } = g2bItems(response)
+  writeFileSync(
+    out,
+    `${JSON.stringify(
+      {
+        source: `https://apis.data.go.kr/1230000/${service}/${operation}`,
+        params,
+        fetched: new Date().toISOString().slice(0, 10),
+        note: '대표자·담당 공무원 이름과 연락처는 지움',
+        response,
+      },
+      null,
+      2,
+    )}\n`,
+  )
+  process.stdout.write(`${items.length}건 (전체 ${total}) → ${out}\n`)
+}
+
 async function main(args: ReadonlyArray<string>) {
   const [cmd, ...rest] = args
   if (cmd === 'pdf-text' && rest.length === 2) return pdfText(rest[0], rest[1])
+  if (cmd === 'hwp-text' && rest.length === 2)
+    return hwpToText(rest[0], rest[1])
+  if (cmd === 'g2b') {
+    const [out] = option(rest, 'out')
+    const positional = rest.filter(
+      (a, i) => a !== '--out' && rest[i - 1] !== '--out',
+    )
+    const [service, operation, ...pairs] = positional
+    if (service && operation && out) return g2b(service, operation, pairs, out)
+  }
   if (cmd === 'candidates') {
     const [lines] = option(rest, 'lines')
     const [out] = option(rest, 'out')

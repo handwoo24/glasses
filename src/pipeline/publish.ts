@@ -1,10 +1,17 @@
 // 검증을 통과한 리포트를 게시한다. 루프가 사람 확인 없이 부르므로 게시해도 되는지는 도구가 정한다.
 import { loadReportDoc } from '#/features/reports/doc/load'
+import { loadVendorDoc } from '#/features/vendors/doc/load'
 import { stageOf } from '#/features/worklist/stage'
 import type { SubjectProgress } from '#/features/worklist/stage'
 import { checkFacts } from './check'
 import { resolve } from './paths'
-import { PublishedSchema, ReportRecordSchema, ReviewSchema } from './schemas'
+import {
+  PublishedSchema,
+  PublishedVendorSchema,
+  ReportRecordSchema,
+  ReviewSchema,
+  VENDOR_SUBJECT_PATH,
+} from './schemas'
 import { get, list, put } from './store'
 
 type Reports = SubjectProgress['reports']
@@ -76,11 +83,18 @@ async function orderFor(slug: string, subject: string): Promise<number> {
   return docs.reduce((max, d) => Math.max(max, d.order), 0) + 1
 }
 
-/** 리포트 한 판을 게시한다. 게시 주소와 순서를 돌려준다 */
+/** 업체 게시 주소가 다른 업체가 쓰는 주소가 아닌지 */
+async function checkVendorSlug(slug: string, subject: string): Promise<void> {
+  const same = await get(`publishedVendors/${slug}`)
+  if (same && PublishedVendorSchema.parse(same).subject !== subject)
+    throw new Error(`게시 주소 ${slug}는 다른 업체가 쓰고 있다`)
+}
+
+/** 리포트 한 판을 게시한다. 게시 주소와 순서(업체 리포트는 없음)를 돌려준다 */
 export async function publish(
   report: string,
   now = new Date(),
-): Promise<{ slug: string; order: number }> {
+): Promise<{ slug: string; order?: number }> {
   const { kind, parent } = resolve(report)
   if (kind !== 'report' || !parent)
     throw new Error(`리포트 경로가 아니다: ${report}`)
@@ -94,9 +108,20 @@ export async function publish(
     throw new Error(`게시하지 않는다: check-facts 문제 ${problems.length}건`)
 
   const record = ReportRecordSchema.parse(await get(report))
+  const at = now.toISOString()
+  if (VENDOR_SUBJECT_PATH.test(parent)) {
+    const { slug } = loadVendorDoc(record.markdown)
+    await checkVendorSlug(slug, parent)
+    await put(report, { ...record, status: 'published', updatedAt: at })
+    await put(`publishedVendors/${slug}`, {
+      report,
+      subject: parent,
+      publishedAt: at,
+    })
+    return { slug }
+  }
   const { slug } = loadReportDoc(record.markdown)
   const order = await orderFor(slug, parent)
-  const at = now.toISOString()
   await put(report, { ...record, status: 'published', updatedAt: at })
   await put(`published/${slug}`, {
     report,

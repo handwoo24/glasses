@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs'
 import { afterAll, describe, expect, test } from 'vitest'
 import { claim, done, enqueue, fail } from './queue'
 import { db, get, put } from './store'
+import { readVendorWorklist } from './vendor-worklist'
 
 const RUN = Date.now().toString(36)
 const ORG = `alio-test${RUN}`
@@ -161,7 +162,7 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST)(
     })
 
     test('업체 카드는 사업과 업체 레지스트리가 있어야 쓴다', async () => {
-      const bizno = RUN.replace(/\D/g, '').padEnd(10, '7').slice(0, 10)
+      const bizno = String(Date.now()).slice(-10)
       const card = `${PROGRAM}/vendors/${bizno}`
       const vendorCard = {
         name: '테스트 업체',
@@ -230,6 +231,17 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST)(
       }
       expect(saved.summary?.vendor).toBe('주식회사 삼성티엔지')
       expect(saved.summary?.axes.output.evidence).toBe('thin')
+
+      // 업체 루프 조사 목록: 게시한 사업은 목록화가 남았고, 카드의 단계는 산출물로 계산한다
+      const work = await readVendorWorklist(ORG)
+      expect(work.toList).toEqual([PROGRAM])
+      expect(work.vendors).toEqual([
+        expect.objectContaining({
+          path: card,
+          stage: '게시',
+          amount: 100_000_000,
+        }),
+      ])
     })
   },
 )

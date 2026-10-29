@@ -11,6 +11,7 @@ import { STAGES } from '#/pipeline/schemas'
 import type { Stage } from '#/pipeline/schemas'
 import { get, list, put } from '#/pipeline/store'
 import { readOrgWorklist } from '#/features/worklist/server/worklist.server'
+import { readVendorWorklist } from '#/pipeline/vendor-worklist'
 
 const USAGE = `사용법: npm run pipeline -- <명령>
   put <문서 경로> <파일.yaml|.json|.md> [--status draft|in-review|published]
@@ -23,6 +24,8 @@ const USAGE = `사용법: npm run pipeline -- <명령>
   check-facts <평가 대상 경로>   인용이 원문에 있는지, 자료 파일이 바뀌지 않았는지
   worklist <기관코드>            사업 카드마다 작업 단계(사이트 작업 현황과 같은 계산)
   publish <리포트 경로>          게시 대기(고친 뒤 마지막 검증 pass, check-facts 통과)인 판만 게시
+                                업체 리포트(programs/…/vendors/…/reports/…)는 publishedVendors/{주소}로
+  vendor-worklist [기관코드]     업체 루프 조사 목록: 업체 목록화가 남은 게시 사업과 업체 카드별 단계
 단계: ${STAGES.join(', ')}
 문서 경로:
   ${PATH_HELP.join('\n  ')}`
@@ -145,6 +148,8 @@ async function run(argv: ReadonlyArray<string>): Promise<void> {
         })),
       )
     }
+    case 'vendor-worklist':
+      return print(await readVendorWorklist(a))
     default:
       throw new Error(USAGE)
   }
