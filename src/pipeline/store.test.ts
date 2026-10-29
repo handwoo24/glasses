@@ -12,6 +12,8 @@ const MATERIAL = `m-${RUN.padStart(12, '0')
   .slice(-12)
   .replace(/[^0-9a-f]/g, 'a')}`
 const REPORT = `${PROGRAM}/reports/2026-10-27`
+/** 업체 레지스트리는 최상위 문서라 실행마다 다른 번호를 쓴다 */
+const BIZNO = String(Date.now()).slice(-10)
 const today = '2026-10-28'
 const now = '2026-10-28T10:00:00+09:00'
 // 실제 게시 주소와 겹치지 않게 slug를 실행마다 바꾼다
@@ -69,6 +71,8 @@ afterAll(async () => {
     `orgs/${ORG}`,
     `materials/${MATERIAL}`,
     `published/test-${RUN}`,
+    `publishedVendors/test-${RUN}`,
+    `vendors/${BIZNO}`,
   ])
     await store.recursiveDelete(store.doc(path))
   const tasks = await store
@@ -162,7 +166,7 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST)(
     })
 
     test('업체 카드는 사업과 업체 레지스트리가 있어야 쓴다', async () => {
-      const bizno = String(Date.now()).slice(-10)
+      const bizno = BIZNO
       const card = `${PROGRAM}/vendors/${bizno}`
       const vendorCard = {
         name: '테스트 업체',

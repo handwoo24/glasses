@@ -1,0 +1,82 @@
+/* 업체 리포트: 판정 카드와 다음 판단 시점은 높이를 맞추고, 그 아래 6개 축 요약이 설명을 맡는다 */
+.vr-top {
+  align-items: stretch;
+}
+.vr-top .rp-verdict {
+  align-content: center;
+}
+.vr-axes {
+  display: grid;
+  gap: var(--sp-3);
+}
+.vr-axes ol {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border-top: 1px solid var(--line);
+}
+.vr-axes li a {
+  display: grid;
+  grid-template-columns: 7.5rem minmax(0, 1fr) auto;
+  grid-template-areas:
+    'nm line who'
+    'bar line who';
+  gap: var(--sp-1) var(--sp-4);
+  align-items: center;
+  padding: var(--sp-3) 0;
+  border-bottom: 1px solid var(--line);
+  color: inherit;
+  text-decoration: none;
+}
+.vr-axes li a:hover .line {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.vr-axes .nm {
+  grid-area: nm;
+  font-weight: 700;
+}
+.vr-axes .bar {
+  grid-area: bar;
+  display: block;
+  height: 10px;
+  border-radius: 3px;
+  background: var(--none-mark, var(--line));
+}
+.vr-axes li.ok .bar {
+  background: var(--ok-mark, var(--ok));
+}
+.vr-axes li.warn .bar {
+  background: var(--warn-mark, var(--warn));
+}
+.vr-axes li.bad .bar {
+  background: var(--bad-mark, var(--bad));
+}
+.vr-axes .line {
+  grid-area: line;
+  min-width: 0;
+}
+.vr-axes .who {
+  grid-area: who;
+  font-size: 13px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+.vr-axes .who .thin {
+  color: var(--warn);
+  font-weight: 700;
+}
+.vr-axes .why {
+  font-size: 14px;
+  color: var(--ink-soft);
+}
+.vr-axes .why b {
+  color: var(--ink);
+  margin-right: var(--sp-1);
+}
+@media (max-width: 640px) {
+  .vr-axes li a {
+    grid-template-columns: 1fr;
+    grid-template-areas: 'nm' 'bar' 'line' 'who';
+  }
+}

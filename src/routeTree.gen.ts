@@ -15,6 +15,7 @@ import { Route as ProgramsProgramIdRouteImport } from './routes/programs/$progra
 import { Route as ReportsSlugRouteImport } from './routes/reports/$slug'
 import { Route as OrgsOrgIdProgramsRouteImport } from './routes/orgs/$orgId/programs'
 import { Route as OrgsOrgIdBudgetsBudgetIdRouteImport } from './routes/orgs/$orgId/budgets/$budgetId'
+import { Route as ProgramsProgramIdVendorsBiznoRouteImport } from './routes/programs/$programId_.vendors.$bizno'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -47,6 +48,12 @@ const OrgsOrgIdBudgetsBudgetIdRoute =
     path: '/orgs/$orgId/budgets/$budgetId',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ProgramsProgramIdVendorsBiznoRoute =
+  ProgramsProgramIdVendorsBiznoRouteImport.update({
+    id: '/programs/$programId_/vendors/$bizno',
+    path: '/programs/$programId/vendors/$bizno',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -55,6 +62,7 @@ export interface FileRoutesByFullPath {
   '/reports/$slug': typeof ReportsSlugRoute
   '/orgs/$orgId/programs': typeof OrgsOrgIdProgramsRoute
   '/orgs/$orgId/budgets/$budgetId': typeof OrgsOrgIdBudgetsBudgetIdRoute
+  '/programs/$programId/vendors/$bizno': typeof ProgramsProgramIdVendorsBiznoRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -63,6 +71,7 @@ export interface FileRoutesByTo {
   '/reports/$slug': typeof ReportsSlugRoute
   '/orgs/$orgId/programs': typeof OrgsOrgIdProgramsRoute
   '/orgs/$orgId/budgets/$budgetId': typeof OrgsOrgIdBudgetsBudgetIdRoute
+  '/programs/$programId/vendors/$bizno': typeof ProgramsProgramIdVendorsBiznoRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -72,6 +81,7 @@ export interface FileRoutesById {
   '/reports/$slug': typeof ReportsSlugRoute
   '/orgs/$orgId/programs': typeof OrgsOrgIdProgramsRoute
   '/orgs/$orgId/budgets/$budgetId': typeof OrgsOrgIdBudgetsBudgetIdRoute
+  '/programs/$programId_/vendors/$bizno': typeof ProgramsProgramIdVendorsBiznoRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -82,6 +92,7 @@ export interface FileRouteTypes {
     | '/reports/$slug'
     | '/orgs/$orgId/programs'
     | '/orgs/$orgId/budgets/$budgetId'
+    | '/programs/$programId/vendors/$bizno'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -90,6 +101,7 @@ export interface FileRouteTypes {
     | '/reports/$slug'
     | '/orgs/$orgId/programs'
     | '/orgs/$orgId/budgets/$budgetId'
+    | '/programs/$programId/vendors/$bizno'
   id:
     | '__root__'
     | '/'
@@ -98,6 +110,7 @@ export interface FileRouteTypes {
     | '/reports/$slug'
     | '/orgs/$orgId/programs'
     | '/orgs/$orgId/budgets/$budgetId'
+    | '/programs/$programId_/vendors/$bizno'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -107,6 +120,7 @@ export interface RootRouteChildren {
   ReportsSlugRoute: typeof ReportsSlugRoute
   OrgsOrgIdProgramsRoute: typeof OrgsOrgIdProgramsRoute
   OrgsOrgIdBudgetsBudgetIdRoute: typeof OrgsOrgIdBudgetsBudgetIdRoute
+  ProgramsProgramIdVendorsBiznoRoute: typeof ProgramsProgramIdVendorsBiznoRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -153,6 +167,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OrgsOrgIdBudgetsBudgetIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/programs/$programId_/vendors/$bizno': {
+      id: '/programs/$programId_/vendors/$bizno'
+      path: '/programs/$programId/vendors/$bizno'
+      fullPath: '/programs/$programId/vendors/$bizno'
+      preLoaderRoute: typeof ProgramsProgramIdVendorsBiznoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -163,6 +184,7 @@ const rootRouteChildren: RootRouteChildren = {
   ReportsSlugRoute: ReportsSlugRoute,
   OrgsOrgIdProgramsRoute: OrgsOrgIdProgramsRoute,
   OrgsOrgIdBudgetsBudgetIdRoute: OrgsOrgIdBudgetsBudgetIdRoute,
+  ProgramsProgramIdVendorsBiznoRoute: ProgramsProgramIdVendorsBiznoRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
