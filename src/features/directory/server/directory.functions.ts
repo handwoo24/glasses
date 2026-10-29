@@ -18,17 +18,16 @@ export const fetchOrgPage = createServerFn({ method: 'GET' })
   .validator(z.object({ org: z.string().regex(ORG_ID) }))
   .handler(async ({ data }): Promise<OrgPage | null> => readOrgPage(data.org))
 
-/** 홈: 시도 지도, 고른 시도·부처의 펼침 칸, 다가오는 판단 시점 */
+/** 홈: 시도 지도와 고른 시도·부처의 펼침 칸 */
 export const fetchHome = createServerFn({ method: 'GET' })
   .validator(
     z.object({
       sido: SIDO_CODE.optional(),
       ministry: z.string().regex(ORG_ID).optional(),
-      today: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
     }),
   )
   .handler(async ({ data }): Promise<HomeData> =>
-    readHome(data.sido, data.ministry, data.today),
+    readHome(data.sido, data.ministry),
   )
 
 /** 지역 탭: 시도 하나의 기관 */

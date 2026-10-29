@@ -1,8 +1,8 @@
 // 홈 / (캔버스 시안 ‘홈 C’): 시도 지도에서 고른 지역을 그 자리에서 펼친다. ‘부처’로 바꾸면 같은 칸에 중앙 기관을 띄운다.
-// 아래에는 평가한 사업의 다가오는 판단 시점. 평가하지 않았다는 것은 문제가 없다는 뜻도, 있다는 뜻도 아니다.
+// 평가하지 않았다는 것은 문제가 없다는 뜻도, 있다는 뜻도 아니다.
 import { Link } from '@tanstack/react-router'
 import { ReportLink } from '#/features/reports/view/report-link'
-import { DDay, StatusBadge } from '#/features/reports/view/parts'
+import { StatusBadge } from '#/features/reports/view/parts'
 import { nextDateOf } from '../list'
 import type { ListedReport } from '../list'
 import { toneOf } from '../regions'
@@ -94,41 +94,6 @@ export function HomePage({ data, view, today }: HomePageProps) {
             data.ministry && <MinistryCard panel={data.ministry} />
           )}
         </section>
-
-        {data.upcoming.length > 0 && (
-          <section className="home-sec" aria-labelledby="t-upcoming">
-            <div className="home-sh">
-              <h2 id="t-upcoming">다가오는 판단 시점</h2>
-              <span>판정을 바꿀 수 있는 자료가 나오는 날</span>
-            </div>
-            <ol className="days">
-              {data.upcoming.map(({ when, date, what, report }, i) => (
-                <li key={`${report.summary.slug}-${i}`}>
-                  <span className="when">
-                    {when} <DDay date={date} />
-                  </span>
-                  <span className="day-items">
-                    <ReportLink
-                      subject={report.summary.subject}
-                      slug={report.summary.slug}
-                      className="day-item"
-                    >
-                      <span className="txt">
-                        <b>{what}</b>
-                        <span className="sub">
-                          <span>
-                            {report.summary.title} · {report.orgName}
-                          </span>
-                        </span>
-                      </span>
-                      <StatusBadge status={report.overall} overall />
-                    </ReportLink>
-                  </span>
-                </li>
-              ))}
-            </ol>
-          </section>
-        )}
       </div>
     </div>
   )

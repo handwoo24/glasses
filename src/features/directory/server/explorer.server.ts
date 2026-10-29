@@ -9,8 +9,6 @@ import type { DirOrg } from './directory.server'
 
 /** 홈 펼침 칸에 보이는 평가 수 */
 const PANEL_REPORTS = 4
-/** 홈에 보이는 판단 시점 수 */
-const UPCOMING = 6
 
 export interface SidoPanel {
   code: string
@@ -31,19 +29,11 @@ export interface MinistryPanel {
   total: number
 }
 
-export interface Upcoming {
-  when: string
-  date?: string
-  what: string
-  report: ListedReport
-}
-
 export interface HomeData {
   stats: Record<string, SidoStat>
   panel: SidoPanel
   ministries: Array<MinistryTile>
   ministry: MinistryPanel | null
-  upcoming: Array<Upcoming>
 }
 
 const inSido = (code: string) => (region: string | undefined) =>
@@ -91,24 +81,9 @@ function ministryTiles(orgs: ReadonlyArray<DirOrg>): Array<MinistryTile> {
     )
 }
 
-function upcomingOf(
-  reports: ReadonlyArray<ListedReport>,
-  today: string,
-): Array<Upcoming> {
-  return reports
-    .flatMap((report) =>
-      report.summary.nextDates
-        .filter((d) => d.date && d.date >= today.slice(0, d.date.length))
-        .map((d) => ({ ...d, report })),
-    )
-    .sort((a, b) => (a.date ?? '').localeCompare(b.date ?? ''))
-    .slice(0, UPCOMING)
-}
-
 export async function readHome(
   sido: string | undefined,
   ministry: string | undefined,
-  today: string,
 ): Promise<HomeData> {
   const { orgs, reports } = await readDirectory()
   const stats = sidoStats(orgs, reports)
@@ -138,7 +113,6 @@ export async function readHome(
           total: theirs.length,
         }
       : null,
-    upcoming: upcomingOf(reports, today),
   }
 }
 

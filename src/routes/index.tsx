@@ -20,14 +20,11 @@ export const Route = createFileRoute('/')({
     sido: search.sido,
     ministry: search.ministry,
   }),
-  // 오늘은 로더에서 한 번 정한다. 서버가 그린 화면과 브라우저가 같은 목록을 쓴다
-  loader: async ({ deps }) => {
-    const today = new Date().toLocaleDateString('sv-SE')
-    return {
-      data: await fetchHome({ data: { ...deps, today } }),
-      today,
-    }
-  },
+  // 오늘은 로더에서 한 번 정한다. 서버가 그린 화면과 브라우저가 같은 ‘다음 판단’을 쓴다
+  loader: async ({ deps }) => ({
+    data: await fetchHome({ data: deps }),
+    today: new Date().toLocaleDateString('sv-SE'),
+  }),
   component: Home,
 })
 

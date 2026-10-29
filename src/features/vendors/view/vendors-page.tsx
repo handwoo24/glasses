@@ -2,15 +2,14 @@
 // 업체 카드는 사업 리포트를 게시한 뒤 업체 루프가 만든다. 그래서 목록은 게시된 사업의 업체만 담는다.
 import { Link, useNavigate } from '@tanstack/react-router'
 import { useState } from 'react'
-import { STATUS_INFO } from '#/features/reports/axes'
 import { StatusBadge } from '#/features/reports/view/parts'
-import { SIDO, won } from '#/features/directory/list'
+import { won } from '#/features/directory/list'
 import { paginate } from '#/features/directory/paging'
 import { Pager } from '#/features/directory/view/pager'
 import { SIDO_TILES } from '#/features/directory/regions'
 import { SidoMap } from '#/features/directory/view/sido-map'
 import { stageTone } from '#/features/worklist/list'
-import { VENDOR_SORTS, filterVendors, vendorSidoCounts } from '../list'
+import { filterVendors, vendorSidoCounts } from '../list'
 import type {
   Engagement,
   VendorListItem,
@@ -20,13 +19,10 @@ import type {
 
 interface VendorsPageProps {
   items: ReadonlyArray<VendorListItem>
-  orgs: ReadonlyArray<{ id: string; name: string; region?: string }>
   search: VendorsSearch
 }
 
-const VERDICTS = ['fix', 'watch', 'on-track', 'unknown'] as const
-
-export function VendorsPage({ items, orgs, search }: VendorsPageProps) {
+export function VendorsPage({ items, search }: VendorsPageProps) {
   const navigate = useNavigate({ from: '/vendors/' })
   const rows = filterVendors(items, search)
   const paged = paginate(rows, search.page)
@@ -38,9 +34,6 @@ export function VendorsPage({ items, orgs, search }: VendorsPageProps) {
   const published = items.reduce(
     (n, v) => n + v.engagements.filter((e) => e.summary).length,
     0,
-  )
-  const regions = Object.entries(SIDO).filter(([code]) =>
-    orgs.some((o) => o.region?.startsWith(code)),
   )
   return (
     <div className="page">
@@ -65,7 +58,7 @@ export function VendorsPage({ items, orgs, search }: VendorsPageProps) {
           <VendorMap items={items} search={search} />
           <div className="vendor-main">
             <form
-              aria-label="필터"
+              aria-label="업체 찾기"
               className="filters"
               onSubmit={(e) => {
                 e.preventDefault()
@@ -76,45 +69,6 @@ export function VendorsPage({ items, orgs, search }: VendorsPageProps) {
               }}
             >
               <SearchBox value={search.q} />
-              <Select
-                id="v-region"
-                label="발주 지역"
-                value={search.region}
-                all="전국"
-                options={regions}
-                onChange={(region) => set({ region })}
-              />
-              <Select
-                id="v-org"
-                label="발주 기관"
-                value={search.org}
-                all="전체"
-                options={orgs.map((o) => [o.id, o.name] as const)}
-                onChange={(org) => set({ org })}
-              />
-              <Select
-                id="v-verdict"
-                label="업체 판정"
-                value={search.verdict}
-                all="전체"
-                options={VERDICTS.map(
-                  (v) => [v, STATUS_INFO[v].overall] as const,
-                )}
-                onChange={(v) =>
-                  set({ verdict: v as VendorsSearch['verdict'] })
-                }
-              />
-              <Select
-                id="v-sort"
-                label="정렬"
-                value={search.sort}
-                all={VENDOR_SORTS.amount}
-                options={Object.entries(VENDOR_SORTS).filter(
-                  ([k]) => k !== 'amount',
-                )}
-                onChange={(s) => set({ sort: s as VendorsSearch['sort'] })}
-                className="sort"
-              />
             </form>
 
             <section className="rp-sec" aria-labelledby="v-list">
@@ -327,46 +281,6 @@ function SearchBox({ value }: { value: string | undefined }) {
         />
         <button type="submit">찾기</button>
       </span>
-    </div>
-  )
-}
-
-interface SelectProps {
-  id: string
-  label: string
-  value: string | undefined
-  all: string
-  options: ReadonlyArray<readonly [string, string]>
-  onChange: (v: string | undefined) => void
-  className?: string
-}
-
-function Select({
-  id,
-  label,
-  value,
-  all,
-  options,
-  onChange,
-  className,
-}: SelectProps) {
-  return (
-    <div className={className ? `field ${className}` : 'field'}>
-      <label className="wl-k" htmlFor={id}>
-        {label}
-      </label>
-      <select
-        id={id}
-        value={value ?? ''}
-        onChange={(e) => onChange(e.target.value || undefined)}
-      >
-        <option value="">{all}</option>
-        {options.map(([v, name]) => (
-          <option key={v} value={v}>
-            {name}
-          </option>
-        ))}
-      </select>
     </div>
   )
 }
