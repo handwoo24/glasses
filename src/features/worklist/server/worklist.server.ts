@@ -6,8 +6,12 @@ import {
   OrgSchema,
   ProgramSchema,
   PublishedSchema,
+  PublishedVendorSchema,
+  VendorCardSchema,
+  VendorSchema,
 } from '#/pipeline/schemas'
-import type { Org } from '#/pipeline/schemas'
+import type { Org, Vendor, VendorCard } from '#/pipeline/schemas'
+import type { VendorSummary } from '#/features/vendors/summary'
 import { db } from '#/pipeline/store'
 import {
   memo,
@@ -33,6 +37,24 @@ export interface WorkItem {
   latestReport: string | null
   /** 게시한 사업의 홈·목록용 요약 */
   summary: ReportSummary | null
+  /** 업체 루프가 이 사업의 참여 업체를 목록화한 날 */
+  vendorsListedAt: string | null
+  /** 이 사업의 업체 카드 (금액 큰 순) */
+  vendors: Array<VendorWork>
+}
+
+/** 사업 줄 아래 업체 줄 하나 */
+export interface VendorWork {
+  bizno: string
+  name: string
+  role: string
+  /** 이 사업 안 계약 금액 합계(원) */
+  amount: number
+  stage: WorkStage
+  /** 게시한 업체 리포트의 요약과 주소 */
+  summary: VendorSummary | null
+  /** 같은 사업자등록번호가 업체 카드로 있는 사업 수 (이 사업 포함) */
+  programs: number
 }
 
 export interface OrgWorklist {
@@ -95,6 +117,9 @@ async function readAll() {
     reports,
     reviews,
     published,
+    vendorCards,
+    publishedVendors,
+    vendorRegistry,
   ] = await Promise.all([
     store.collection('orgs').get(),
     store.collection('programs').get(),
@@ -111,6 +136,10 @@ async function readAll() {
       .select('report', 'verdict', 'reviewedAt')
       .get(),
     store.collection('published').get(),
+    // 사업 아래 업체 카드. 같은 이름의 최상위 레지스트리(vendors/{번호})는 아래에서 뺀다
+    store.collectionGroup('vendors').get(),
+    store.collection('publishedVendors').get(),
+    store.collection('vendors').get(),
   ])
   const materialCount = new Map<string, number>()
   for (const d of materials.docs)
@@ -144,7 +173,62 @@ async function readAll() {
         parsed(PublishedSchema, d).map((p) => p.subject),
       ),
     ),
+    vendorCards: vendorCards.docs
+      .filter((d) => d.ref.parent.parent !== null)
+      .flatMap((d) =>
+        parsed(VendorCardSchema, d).map((card) => ({
+          program: d.ref.parent.parent?.path ?? '',
+          bizno: d.id,
+          card,
+        })),
+      ),
+    publishedVendors: new Map(
+      publishedVendors.docs.flatMap((d) =>
+        parsed(PublishedVendorSchema, d).map(
+          (p) =>
+            [p.subject, { slug: d.id, summary: p.summary ?? null }] as const,
+        ),
+      ),
+    ),
+    vendorRegistry: new Map(
+      vendorRegistry.docs.flatMap((d) =>
+        parsed(VendorSchema, d).map((v) => [d.id, v] as const),
+      ),
+    ),
   }
+}
+
+type Snapshot = Awaited<ReturnType<typeof readAll>>
+
+/** 평가 대상 하나의 작업 진행 (사업·업체 공통) */
+function progressOf(all: Snapshot, path: string): SubjectProgress {
+  return {
+    materials: all.materialCount.get(path) ?? 0,
+    facts: all.facts.get(path)?.length ?? 0,
+    absences: all.absences.get(path)?.length ?? 0,
+    reports: all.reports.get(path) ?? [],
+    reviews: all.reviews.get(path) ?? [],
+    published: all.published.has(path) || all.publishedVendors.has(path),
+  }
+}
+
+/** 사업의 업체 줄 */
+function vendorsOf(all: Snapshot, program: string): Array<VendorWork> {
+  return all.vendorCards
+    .filter((v) => v.program === program)
+    .map(({ bizno, card }) => {
+      const path = `${program}/vendors/${bizno}`
+      return {
+        bizno,
+        name: card.name,
+        role: card.role,
+        amount: card.contracts.reduce((s, c) => s + c.amount, 0),
+        stage: stageOf(progressOf(all, path)),
+        summary: all.publishedVendors.get(path)?.summary ?? null,
+        programs: all.vendorCards.filter((x) => x.bizno === bizno).length,
+      }
+    })
+    .sort((a, b) => b.amount - a.amount)
 }
 
 const snapshot = memo(readAll)
@@ -219,14 +303,7 @@ export async function readOrgWorklist(
     .filter((p) => p.org === orgId)
     .map((p): WorkItem => {
       const path = `programs/${p.id}`
-      const progress: SubjectProgress = {
-        materials: all.materialCount.get(path) ?? 0,
-        facts: all.facts.get(path)?.length ?? 0,
-        absences: all.absences.get(path)?.length ?? 0,
-        reports: all.reports.get(path) ?? [],
-        reviews: all.reviews.get(path) ?? [],
-        published: all.published.has(path),
-      }
+      const progress = progressOf(all, path)
       const latest = progress.reports
         .map((r) => r.asOf)
         .sort()
@@ -245,6 +322,8 @@ export async function readOrgWorklist(
         absences: progress.absences,
         latestReport: latest ?? null,
         summary: bySubject.get(path) ?? null,
+        vendorsListedAt: p.vendorsListedAt ?? null,
+        vendors: vendorsOf(all, path),
       }
     })
   return {
@@ -257,5 +336,62 @@ export async function readOrgWorklist(
     },
     catalog: catalogOf(orgLines),
     items,
+  }
+}
+
+/** 업체 페이지: 업체 하나가 평가 대상 사업에서 맡은 일 */
+export interface VendorPage {
+  bizno: string
+  registry: Vendor | null
+  /** 사업마다 하나. 게시된 리포트 먼저, 그다음 금액 큰 순 */
+  engagements: Array<{
+    program: string
+    programName: string
+    orgName: string
+    /** 업체 카드의 법인명 */
+    name: string
+    departments: ReadonlyArray<string>
+    role: string
+    contracts: VendorCard['contracts']
+    amount: number
+    stage: WorkStage
+    summary: VendorSummary | null
+  }>
+}
+
+/** 사업자등록번호 하나의 업체 페이지. 업체 카드가 하나도 없으면 null */
+export async function readVendorPage(
+  bizno: string,
+): Promise<VendorPage | null> {
+  const all = await snapshot()
+  const cards = all.vendorCards.filter((v) => v.bizno === bizno)
+  if (!cards.length) return null
+  const programs = new Map(all.programs.map((p) => [`programs/${p.id}`, p]))
+  const engagements = cards
+    .map(({ program, card }) => {
+      const p = programs.get(program)
+      const path = `${program}/vendors/${bizno}`
+      return {
+        program,
+        programName: p?.name ?? program,
+        name: card.name,
+        orgName: (p && all.orgs.get(p.org)?.name) ?? '',
+        departments: p?.departments ?? [],
+        role: card.role,
+        contracts: card.contracts,
+        amount: card.contracts.reduce((s, c) => s + c.amount, 0),
+        stage: stageOf(progressOf(all, path)),
+        summary: all.publishedVendors.get(path)?.summary ?? null,
+      }
+    })
+    .sort(
+      (a, b) =>
+        Number(b.summary !== null) - Number(a.summary !== null) ||
+        b.amount - a.amount,
+    )
+  return {
+    bizno,
+    registry: all.vendorRegistry.get(bizno) ?? null,
+    engagements,
   }
 }
