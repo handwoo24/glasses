@@ -3,7 +3,7 @@ import { VendorsSearchSchema } from '#/features/vendors/list'
 import { VendorsPage } from '#/features/vendors/view/vendors-page'
 import { fetchVendorList } from '#/features/worklist/server/worklist.functions'
 
-/** 용역 탭: /vendors?region=&org=&verdict=&q=&sort=&page= */
+/** 용역 탭: /vendors?by=&home=&region=&q=&page= */
 export const Route = createFileRoute('/vendors/')({
   validateSearch: VendorsSearchSchema,
   loader: () => fetchVendorList(),
@@ -20,6 +20,6 @@ export const Route = createFileRoute('/vendors/')({
 })
 
 function Vendors() {
-  const { items, orgs } = Route.useLoaderData()
-  return <VendorsPage items={items} orgs={orgs} search={Route.useSearch()} />
+  const { items } = Route.useLoaderData()
+  return <VendorsPage items={items} search={Route.useSearch()} />
 }

@@ -64,7 +64,7 @@ export function WorklistPage({ data, search }: WorklistPageProps) {
       <div className="wl">
         <div className="wl-top">
           <nav aria-label="경로" className="wl-crumb">
-            <Link to="/orgs">전국</Link>
+            <Link to="/">전국</Link>
             {org.parent && org.parentName && (
               <>
                 <span aria-hidden="true">›</span>

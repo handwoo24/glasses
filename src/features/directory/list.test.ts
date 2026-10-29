@@ -2,13 +2,12 @@ import { describe, expect, it } from 'vitest'
 import type { ReportSummary } from '#/features/reports/summary'
 import {
   distribution,
-  filterReports,
+  heavyFirst,
   isoOf,
   listedReport,
   nextDateOf,
   sidoOf,
   won,
-  ProgramsSearchSchema,
 } from './list'
 
 const axes = (status: 'on-track' | 'watch' | 'fix' | 'unknown') =>
@@ -68,40 +67,13 @@ const rows = [
   }),
 ]
 
-describe('사업 목록 필터', () => {
-  it('시도 코드는 기초자치단체의 5자리 지역도 고른다', () => {
-    expect(
-      filterReports(rows, { region: '41' }, '2026-10-29').map(
-        (r) => r.summary.slug,
-      ),
-    ).toEqual(['bus', 'ev'])
-  })
-
-  it('부처는 국고보조사업의 중앙 부처로도 고른다', () => {
-    expect(
-      filterReports(rows, { ministry: '1613000' }, '2026-10-29').map(
-        (r) => r.summary.slug,
-      ),
-    ).toEqual(['bus'])
-  })
-
-  it('기본 정렬은 다음 판단 시점이 가까운 순이고 날짜가 없으면 뒤', () => {
-    expect(
-      filterReports(rows, {}, '2026-10-29').map((r) => r.summary.slug),
-    ).toEqual(['bus', 'ev', 'seoul'])
-  })
-
-  it('최근 평가 순과 무거운 판정 순', () => {
-    expect(
-      filterReports(rows, { sort: 'recent' }, '2026-10-29').map(
-        (r) => r.summary.slug,
-      ),
-    ).toEqual(['seoul', 'bus', 'ev'])
-    expect(
-      filterReports(rows, { sort: 'heavy', field: '환경' }, '2026-10-29').map(
-        (r) => r.summary.slug,
-      ),
-    ).toEqual(['ev', 'seoul'])
+describe('게시 리포트 목록', () => {
+  it('판정이 무거운 순, 같으면 최근 평가 순', () => {
+    expect(heavyFirst(rows).map((r) => r.summary.slug)).toEqual([
+      'bus',
+      'ev',
+      'seoul',
+    ])
   })
 
   it('지난 판단 시점은 다음 판단 시점이 아니다', () => {
@@ -130,18 +102,5 @@ describe('표기', () => {
     expect(won(3_421_000_000_000)).toBe('3조 4,210억 원')
     expect(won(34_000_000_000)).toBe('340억 원')
     expect(won(80_000_000)).toBe('8천만 원')
-  })
-})
-
-describe('주소 검색 조건', () => {
-  it('숫자로 읽힌 지역·부처 코드도 받는다', () => {
-    expect(
-      ProgramsSearchSchema.parse({ region: 41, ministry: 1613000 }),
-    ).toEqual({ region: '41', ministry: '1613000' })
-  })
-  it('틀린 값은 버린다', () => {
-    expect(ProgramsSearchSchema.parse({ region: '4', verdict: 'x' })).toEqual(
-      {},
-    )
   })
 })

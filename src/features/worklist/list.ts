@@ -22,7 +22,8 @@ export const STAGE_FILTERS = [
 ] as const
 
 export const WorklistSearchSchema = z.object({
-  dept: z.string().min(1).optional().catch(undefined),
+  // 숫자로만 된 부서 이름은 주소에서 숫자로 읽힌다
+  dept: z.coerce.string().min(1).optional().catch(undefined),
   /** 게시된 사업 아래 업체 줄: 펼침(기본)·접음 */
   vendors: z.enum(['open', 'closed']).optional().catch(undefined),
   /** 업체 작업이 남은 사업만: 목록화가 남았거나 게시 전 업체가 있는 사업 */
