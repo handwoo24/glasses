@@ -5,6 +5,7 @@
  */
 import { z } from 'zod'
 import { ReportSummarySchema } from '#/features/reports/summary'
+import { VendorSummarySchema } from '#/features/vendors/summary'
 
 const isoDate = z.iso.date()
 const isoDateTime = z.iso.datetime({ offset: true })
@@ -23,6 +24,23 @@ export const BUDGET_ID = /^\d{4}-(?:original|supplementary-\d+|settlement)$/
 /** 평가 대상 경로: 사업 또는 재정 문서 */
 export const SUBJECT_PATH = new RegExp(
   `^(?:programs/${ORG}\\.[a-z0-9-]+|orgs/${ORG}/budgets/\\d{4}-(?:original|supplementary-\\d+|settlement))$`,
+)
+/** 사업자등록번호 10자리 (하이픈 없이). 업체 id로 쓴다 */
+export const BIZNO = '\\d{10}'
+/** 업체 평가 대상: 사업 안의 업체 하나 (programs/{기관코드}.{사업}/vendors/{사업자등록번호}) */
+export const VENDOR_SUBJECT_PATH = new RegExp(
+  `^programs/${ORG}\\.[a-z0-9-]+/vendors/${BIZNO}$`,
+)
+/** 사실·부재 기록·리포트·검증 기록을 둘 수 있는 평가 대상: 사업·재정 문서·업체 */
+export function isEvaluationSubject(path: string): boolean {
+  return SUBJECT_PATH.test(path) || VENDOR_SUBJECT_PATH.test(path)
+}
+const EvaluationSubject = z
+  .string()
+  .refine(isEvaluationSubject, '평가 대상 경로가 아니다')
+/** 다른 평가 대상의 사실 경로 (업체 리포트가 사업 쪽 계약 사실을 가리킬 때) */
+const FACT_PATH = new RegExp(
+  `^programs/${ORG}\\.[a-z0-9-]+(?:/vendors/${BIZNO})?/facts/f\\d+$`,
 )
 /** 자료 id: m- + 원본 파일 SHA-256 앞 12자리 */
 export const MATERIAL_ID = /^m-[0-9a-f]{12}$/
@@ -84,6 +102,8 @@ export const ProgramSchema = z.strictObject({
   /** 담당 부서 (예산서 세출 사업명세서의 부서 이름). 여러 부서가 나눠 맡으면 모두 적는다 */
   departments: z.array(z.string().min(1)).default([]),
   status: z.enum(['계획', '진행 중', '완료', '중단']),
+  /** 업체 루프가 이 사업의 참여 업체를 목록화한 날. 평가할 업체가 없어도 적어서 다시 훑지 않는다 */
+  vendorsListedAt: isoDate.optional(),
   priority: z.strictObject({
     score: z.enum(['high', 'medium', 'low']),
     why: z.string().min(1),
@@ -168,7 +188,64 @@ export const MaterialSchema = z.strictObject({
   /** 다루는 기관 (레지스트리에 있는 기관만) */
   about: z.array(z.string().regex(ORG_ID)).default([]),
   /** 쓰이는 평가 대상 */
-  subjects: z.array(z.string().regex(SUBJECT_PATH)).default([]),
+  subjects: z.array(EvaluationSubject).default([]),
+})
+
+/**
+ * 업체 레지스트리 (vendors/{사업자등록번호}): 공식 등록 정보만. 여러 사업에 나오는 업체를 한 곳에 묶는다.
+ * 대표자·직원 이름은 받지 않는다(strictObject).
+ */
+export const VendorSchema = z.strictObject({
+  /** 공식 기록의 법인명 그대로 */
+  name: z.string().min(1),
+  type: z.enum(['법인', '개인']),
+  /** 본사 소재 시군구 (경기도 고양시 일산동구) */
+  region: z.string().min(1).optional(),
+  openedAt: isoDate.optional(),
+  employees: z.number().int().nonnegative().optional(),
+  /** 나라장터 등록 업무 (물품, 용역, 공사 …) */
+  businesses: z.array(z.string().min(1)).default([]),
+  /** 마지막으로 부정당 제재를 조회한 날과 그때 유효한 제재 수 */
+  sanctions: z
+    .strictObject({
+      checkedAt: isoDate,
+      active: z.number().int().nonnegative(),
+    })
+    .optional(),
+  updatedAt: isoDate,
+})
+
+export const CONTRACT_KINDS = ['용역', '공사', '물품'] as const
+
+/**
+ * 업체 카드 (programs/{사업}/vendors/{사업자등록번호}): 사업 안에서 업체 하나가 맡은 일. 업체 리포트의 평가 대상.
+ * 카드 목록이 업체 루프의 조사 목록이 되고, 작업 단계는 남은 산출물로 계산한다.
+ */
+export const VendorCardSchema = z.strictObject({
+  name: z.string().min(1),
+  /** 맡은 일 한 줄 (스마트시티센터 정보시스템 유지보수) */
+  role: z.string().min(1),
+  contracts: z
+    .array(
+      z.strictObject({
+        name: z.string().min(1),
+        /** 계약번호·통합계약번호 */
+        no: z.string().min(1),
+        /** 최종 계약 금액(원) */
+        amount: z.number().int().nonnegative(),
+        from: isoDate,
+        to: isoDate,
+        kind: z.enum(CONTRACT_KINDS),
+      }),
+    )
+    .min(1),
+  /** 공동수급이면 이 업체의 지분(%) */
+  share: z.number().min(0).max(100).optional(),
+  priority: z.strictObject({
+    score: z.enum(['high', 'medium', 'low']),
+    why: z.string().min(1),
+  }),
+  updatedAt: isoDate,
 })
 
 /** 사람이 남긴 배경 메모 (수집 노트, 사업 요약). 평가 근거가 아니라 작업 맥락이다 */
@@ -188,6 +265,15 @@ export const PublishedSchema = z.strictObject({
   publishedAt: isoDateTime,
   /** 홈·목록용 요약. 게시할 때 파이프라인 도구가 리포트에서 계산해 채운다 */
   summary: ReportSummarySchema.optional(),
+})
+
+/** 업체 리포트 게시 (publishedVendors/{주소}). 사업·재정 문서 게시와 화면·요약이 달라 따로 둔다 */
+export const PublishedVendorSchema = z.strictObject({
+  report: z.string().min(1),
+  subject: z.string().regex(VENDOR_SUBJECT_PATH),
+  publishedAt: isoDateTime,
+  /** 업체 목록용 요약. 게시할 때 파이프라인 도구가 리포트에서 계산해 채운다 */
+  summary: VendorSummarySchema.optional(),
 })
 
 /** 사람 이름을 가리는 표기. 원문 검사(check-facts)에서는 아무 이름(한글 2~4자)과 맞춰 본다 */
@@ -218,8 +304,13 @@ export const FactSchema = z
     /** 원문 그대로, 짧게 */
     quote: z.string().min(1).max(500).optional(),
     /** 계산된 사실: 근거 사실 id + 계산식 */
+    /** 같은 평가 대상의 f{n}, 또는 다른 평가 대상 사실의 경로 */
     derivedFrom: z
-      .array(z.string().regex(/^f\d+$/))
+      .array(
+        z.string().refine((r) => /^f\d+$/.test(r) || FACT_PATH.test(r), {
+          message: 'f{번호} 또는 programs/…/facts/f{번호}',
+        }),
+      )
       .min(1)
       .optional(),
     formula: z.string().min(1).optional(),
@@ -308,8 +399,8 @@ export const TASK_STATUSES = ['queued', 'running', 'done', 'failed'] as const
 /** 작업 큐 한 건 */
 export const TaskSchema = z.strictObject({
   stage: z.enum(STAGES),
-  /** 평가 대상 (programs/… 또는 orgs/…/budgets/…) */
-  subject: z.string().regex(SUBJECT_PATH).optional(),
+  /** 평가 대상 (programs/… · orgs/…/budgets/… · programs/…/vendors/…) */
+  subject: EvaluationSubject.optional(),
   status: z.enum(TASK_STATUSES),
   attempt: z.number().int().nonnegative(),
   /** 실행 중인 작업을 다른 실행이 가져가지 못하는 시각 */
@@ -325,6 +416,9 @@ export const TaskSchema = z.strictObject({
 
 export type Org = z.infer<typeof OrgSchema>
 export type Program = z.infer<typeof ProgramSchema>
+export type Vendor = z.infer<typeof VendorSchema>
+export type VendorCard = z.infer<typeof VendorCardSchema>
+export type PublishedVendor = z.infer<typeof PublishedVendorSchema>
 export type BudgetDoc = z.infer<typeof BudgetDocSchema>
 export type BudgetLine = z.infer<typeof BudgetLineSchema>
 export type Note = z.infer<typeof NoteSchema>

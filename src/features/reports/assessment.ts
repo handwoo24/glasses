@@ -169,8 +169,8 @@ export function verdictReason(
 }
 
 /** 축과 답이 정해진 점검 질문 */
-export interface ClassifiedCheck {
-  axis: AxisId
+export interface ClassifiedCheck<TAxis extends string = AxisId> {
+  axis: TAxis
   answer: Answer
   question: string
   finding: string

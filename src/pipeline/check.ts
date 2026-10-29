@@ -3,7 +3,7 @@
 import { createHash } from 'node:crypto'
 import { FactSchema, MaterialSchema, NAME_MASK } from './schemas'
 import type { Fact } from './schemas'
-import { get, list, readMaterialFile } from './store'
+import { factPath, get, list, readMaterialFile } from './store'
 
 const squash = (s: string) => s.replace(/\s+/g, ' ')
 
@@ -49,7 +49,7 @@ async function checkSourced(
     : [{ fact: id, problem: `인용이 원문에 없음: ${fact.quote}` }]
 }
 
-/** 평가 대상(programs/… 또는 orgs/…/budgets/…)의 사실 원장 전체를 검사한다. 문제가 없으면 빈 배열 */
+/** 평가 대상(programs/… · programs/…/vendors/… · orgs/…/budgets/…)의 사실 원장 전체를 검사한다. 문제가 없으면 빈 배열 */
 export async function checkFacts(subject: string): Promise<Array<FactProblem>> {
   const rows = await list(`${subject}/facts`)
   const ids = new Set(rows.map((r) => r.id))
@@ -58,9 +58,14 @@ export async function checkFacts(subject: string): Promise<Array<FactProblem>> {
   for (const { id, data } of rows) {
     const fact = FactSchema.parse(data)
     if (fact.material) problems.push(...(await checkSourced(id, fact, files)))
-    for (const ref of fact.derivedFrom ?? [])
-      if (!ids.has(ref))
+    for (const ref of fact.derivedFrom ?? []) {
+      // 다른 평가 대상의 사실(업체 리포트가 사업 쪽 사실을 가리킬 때)은 그 문서가 있는지 본다
+      const found = ref.includes('/')
+        ? (await get(factPath(subject, ref))) !== undefined
+        : ids.has(ref)
+      if (!found)
         problems.push({ fact: id, problem: `근거 사실이 없음: ${ref}` })
+    }
   }
   return problems
 }

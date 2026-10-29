@@ -159,6 +159,78 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST)(
         }),
       ).rejects.toThrow('게시할 리포트는')
     })
+
+    test('업체 카드는 사업과 업체 레지스트리가 있어야 쓴다', async () => {
+      const bizno = RUN.replace(/\D/g, '').padEnd(10, '7').slice(0, 10)
+      const card = `${PROGRAM}/vendors/${bizno}`
+      const vendorCard = {
+        name: '테스트 업체',
+        role: '테스트 유지보수',
+        contracts: [
+          {
+            name: '테스트 용역',
+            no: 'T-1',
+            amount: 100_000_000,
+            from: '2026-01-01',
+            to: '2026-12-31',
+            kind: '용역',
+          },
+        ],
+        priority: { score: 'low', why: '테스트' },
+        updatedAt: today,
+      }
+      await expect(put(card, vendorCard)).rejects.toThrow(
+        '업체 레지스트리 먼저',
+      )
+      await put(`vendors/${bizno}`, {
+        name: '테스트 업체',
+        type: '법인',
+        updatedAt: today,
+      })
+      await put(card, vendorCard)
+
+      // 업체 평가 대상의 계산된 사실은 사업 쪽 사실을 경로로 가리킨다
+      const derived = {
+        claim: '사업 쪽 금액의 두 배',
+        kind: '수치',
+        derivedFrom: [`${PROGRAM}/facts/f1`],
+        formula: 'f1 * 2',
+        recordedAt: today,
+      }
+      await put(`${card}/facts/f1`, derived)
+      await expect(
+        put(`${card}/facts/f2`, {
+          ...derived,
+          derivedFrom: [`${PROGRAM}/facts/f99`],
+        }),
+      ).rejects.toThrow('근거 사실 먼저')
+
+      // 업체 평가 대상의 리포트는 업체 리포트 양식으로 검사한다
+      const vendorMd = readFileSync(
+        'src/features/vendors/doc/__fixtures__/samsung-tng.md',
+        'utf8',
+      ).replace(
+        'slug: samsung-tng-smartcity-center-maintenance',
+        `slug: test-${RUN}`,
+      )
+      const vendorReport = `${card}/reports/2026-10-29`
+      await expect(put(vendorReport, record(md))).rejects.toThrow('머리말')
+      await put(vendorReport, record(vendorMd, 'published'))
+      const published = {
+        report: vendorReport,
+        subject: card,
+        publishedAt: now,
+      }
+      await expect(
+        put(`publishedVendors/other-${RUN}`, published),
+      ).rejects.toThrow('머리말의 slug')
+      await put(`publishedVendors/test-${RUN}`, published)
+      const saved = (await get(`publishedVendors/test-${RUN}`)) as {
+        summary?: { vendor: string; axes: Record<string, { evidence: string }> }
+      }
+      expect(saved.summary?.vendor).toBe('주식회사 삼성티엔지')
+      expect(saved.summary?.axes.output.evidence).toBe('thin')
+    })
   },
 )
 

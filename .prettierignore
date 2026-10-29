@@ -3,3 +3,4 @@ pnpm-lock.yaml
 yarn.lock
 # 리포트 문서: Prettier가 지시자(:::)를 몰라 구조를 깨뜨린다. 양식 검사는 doc/load.ts가 한다
 src/features/reports/doc/__fixtures__/*.md
+src/features/vendors/doc/__fixtures__/*.md

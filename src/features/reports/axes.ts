@@ -101,6 +101,20 @@ export const OVERALL_EVIDENCE_INFO: Record<OverallEvidence, string> = {
   low: '낮음',
 }
 
+/** 문서가 쓰는 축 목록: 순서대로의 id와 문서 제목에 쓰는 이름(④ 비용). 사업·재정 문서와 업체 리포트가 다르다 */
+export interface AxisSet<TAxis extends string> {
+  ids: ReadonlyArray<TAxis>
+  name: (id: TAxis) => string
+}
+
+export const PROGRAM_AXES: AxisSet<AxisId> = {
+  ids: AXIS_IDS,
+  name: (a) => `${AXIS_INFO[a].no} ${AXIS_INFO[a].label}`,
+}
+
+/** 축 목록을 받는 파서의 구현부가 쓰는 꼴. 공개 시그니처는 축 id 타입을 지킨다 */
+export const ANY_AXES = PROGRAM_AXES as unknown as AxisSet<string>
+
 /** 종합 판정 규칙을 사람이 읽는 문장으로. overallStatus와 같은 순서다 */
 export const OVERALL_RULES: ReadonlyArray<string> = [
   '② 진척 또는 ③ 성과가 ‘개선 필요’다 → 개선 필요',

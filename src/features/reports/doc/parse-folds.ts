@@ -1,7 +1,7 @@
 // '자세히 보기'와 출처 구역: 점검표, 예산 과정, 계약, 감사, 공개 문서, 진행 경과, 출처.
 import { parse as parseYaml } from 'yaml'
-import { AXIS_IDS, AXIS_INFO } from '../axes'
-import type { AxisId } from '../axes'
+import { ANY_AXES } from '../axes'
+import type { AxisId, AxisSet } from '../axes'
 import { ANSWER_INFO } from '../assessment'
 import type { Answer, ClassifiedCheck } from '../assessment'
 import {
@@ -65,11 +65,11 @@ function labels<T extends Array<Record<string, string>>>(
   }) as { [K in keyof T]: keyof T[K] }
 }
 
-function checkItems(
+function checkItems<TAxis extends string>(
   list: List,
-  axis: AxisId,
+  axis: TAxis,
   where: string,
-): Array<ClassifiedCheck> {
+): Array<ClassifiedCheck<TAxis>> {
   return leadItems(list, where).map(({ lead, more }) => {
     const [answer] = labels(lead.label, [ANSWER_LABEL], where)
     const [question, ...cite] = cited(lead.rest, where)
@@ -99,16 +99,27 @@ function signalItems(list: List, where: string): Array<RiskSignal> {
   })
 }
 
-export function parseChecks(sec: Section) {
+export function parseChecks(sec: Section): {
+  checks: Array<ClassifiedCheck>
+  signals: Record<AxisId, Array<RiskSignal>>
+}
+export function parseChecks<TAxis extends string>(
+  sec: Section,
+  set: AxisSet<TAxis>,
+): {
+  checks: Array<ClassifiedCheck<TAxis>>
+  signals: Record<TAxis, Array<RiskSignal>>
+}
+export function parseChecks(sec: Section, set: AxisSet<string> = ANY_AXES) {
   const { before, sections } = splitSections(sec.nodes, 3, sec.where)
   expectNodes(before, [], sec.where)
-  const titles = AXIS_IDS.map((a) => `${AXIS_INFO[a].no} ${AXIS_INFO[a].label}`)
+  const titles = set.ids.map((a) => set.name(a))
   const named = namedSections(sections, titles, sec.where)
-  const checks: Array<ClassifiedCheck> = []
-  const signals = Object.fromEntries(
-    AXIS_IDS.map((a) => [a, [] as Array<RiskSignal>]),
-  ) as Record<AxisId, Array<RiskSignal>>
-  AXIS_IDS.forEach((axis, i) => {
+  const checks: Array<ClassifiedCheck<string>> = []
+  const signals: Record<string, Array<RiskSignal>> = Object.fromEntries(
+    set.ids.map((a) => [a, [] as Array<RiskSignal>]),
+  )
+  set.ids.forEach((axis, i) => {
     const s = named.get(titles[i])
     if (!s) return
     const inner = splitSections(s.nodes, 4, s.where)
