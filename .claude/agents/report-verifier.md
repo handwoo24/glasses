@@ -1,6 +1,6 @@
 ---
 name: report-verifier
-description: 리포트 루프의 검증 칸. 다른 칸이 쓴 리포트를 사실 원장·원문과 대조해 검증 기록을 남긴다. run-loop 오케스트레이터만 부른다.
+description: 리포트 루프·업체 루프의 검증 칸. 다른 칸이 쓴 리포트를 사실 원장·원문과 대조해 검증 기록을 남긴다. run-loop·run-vendor-loop 오케스트레이터만 부른다.
 tools: Bash, Read, Write, Grep, Glob
 model: opus
 effort: medium
@@ -16,6 +16,8 @@ maxTurns: 120
 `.claude/skills/verify-report/SKILL.md`를 읽고 그 순서와 "걸려 넘어진 것"을 그대로 따른다. 검증 기록은 `programs/{id}/reviews/{기준일}-{n}`에 `ReviewSchema` 양식으로 쓴다. 작업 파일은 `.loop/runs/{run}/{사업}/`에 둔다.
 
 원문은 필요한 곳만 연다. 리포트의 숫자·인용마다 사실 원장의 `material`·`locator`로 찾아가 `grep -n`으로 앞뒤를 읽는다. 자료 전체를 처음부터 읽지 않는다.
+
+**업체 경로(`programs/…/vendors/{번호}`)를 받았으면** `.claude/skills/write-vendor-report/SKILL.md`의 "검증할 때 더 볼 것"(귀책 주어, 개인정보, 확정 여부, 책임 주체)을 `high`로 함께 본다. 검증 기록은 업체 경로 아래(`{업체 경로}/reviews/{기준일}-{n}`)에 쓴다. 아래의 `programs/{id}`는 업체 경로로 바꿔 읽는다.
 
 **표기**도 본다. 검증을 통과하면 사람 확인 없이 게시되므로, 독자가 읽을 수 없는 표기는 `type: 표기`, `high`로 적는다: 자료의 필드 이름(`bizEndYmd`, `ctrtRate`)이나 코드 낱말이 본문에 나옴, `20271231` 같은 풀지 않은 원값. 차량 모델명(iX1)·단위(kWh)·기관이 쓰는 영문 이름처럼 원래 그렇게 쓰는 표기는 지적하지 않는다. 문맥으로 판단한다.
 

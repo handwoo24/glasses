@@ -1,6 +1,6 @@
 ---
 name: report-ledger
-description: 리포트 루프의 사실 원장 칸. 발췌 후보에서 사실·계산·부재 기록을 만든다. run-loop 오케스트레이터만 부른다.
+description: 리포트 루프·업체 루프의 사실 원장 칸. 발췌 후보에서 사실·계산·부재 기록을 만든다. run-loop·run-vendor-loop 오케스트레이터만 부른다.
 tools: Bash, Read, Write, Edit, Grep, Glob
 model: sonnet
 effort: high
@@ -15,6 +15,8 @@ maxTurns: 120
 
 - `.claude/skills/write-report/SKILL.md`의 "사실 원장"과 "걸려 넘어진 것".
 - `npm run pipeline -- ls programs/{id}/facts`, `…/absences`. 이미 있으면 이어서 번호를 매긴다.
+
+**업체 경로(`programs/…/vendors/{번호}`)를 받았으면** `.claude/skills/write-vendor-report/SKILL.md`의 "사실 원장"도 읽는다. 사실은 업체 경로 아래에 쓰고, 사업 쪽에 이미 있는 계약 사실은 다시 쓰지 않고 계산된 사실의 `derivedFrom`에 경로(`programs/{사업}/facts/f6`)로 가리킨다. 귀책은 원문이 말한 만큼만 `claim`에 쓰고, 다른 업체 이름은 `claim`에 쓰지 않는다. 아래의 `programs/{id}`는 업체 경로로 바꿔 읽는다.
 
 ## 할 일
 
