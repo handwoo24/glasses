@@ -6,6 +6,8 @@
   max-width: 1160px;
   margin: 0 auto;
   display: grid;
+  /* 넓은 자식(긴 선택 상자 옵션)이 열을 늘려 휴대폰에서 가로로 넘치지 않게 */
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--sp-8);
 }
 .dir-top {
@@ -215,6 +217,9 @@
 .rel-card:hover {
   box-shadow: var(--shadow-card-hover);
 }
+.rel-card {
+  min-width: 0;
+}
 .rel-card .k {
   font-size: var(--fs-micro);
   font-weight: 700;
@@ -259,14 +264,20 @@
   margin: 0 calc(-1 * var(--sp-4));
   padding: 0 var(--sp-4) var(--sp-1);
 }
+.org-chips > li {
+  flex: 0 0 min(15rem, 70vw);
+}
 .org-chip {
   display: grid;
+  align-content: start;
+  gap: 2px;
+  min-width: 0;
+  height: 100%;
   padding: var(--sp-2) var(--sp-3);
   border: 1px solid var(--line);
   border-radius: var(--r-md);
   color: var(--ink);
   text-decoration: none;
-  white-space: nowrap;
 }
 .org-chip b {
   font-size: var(--fs-small);
@@ -299,12 +310,17 @@
 }
 .filters .field {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--sp-1);
+  min-width: 0;
+  max-width: 100%;
 }
 .filters .sort {
   margin-left: auto;
 }
 .filters select {
+  max-width: 100%;
+  text-overflow: ellipsis;
   appearance: none;
   min-height: 44px;
   padding: 0 44px 0 14px;
@@ -461,7 +477,217 @@
   color: var(--muted);
 }
 
+/* 긴 이름(기관 정식 명칭, 사업 이름): 칸 안에서 두 줄까지 줄바꿈하고 넘치면 말줄임. 전체 이름은 title로 */
+.org-chip b,
+.rel-card b,
+.vl-name a,
+.vl-eng .what a {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+}
+.prog-row h3 {
+  overflow-wrap: anywhere;
+}
+
+/* 쪽 번호 */
+.pager {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-3);
+  padding-top: var(--sp-4);
+}
+.pager .count {
+  font-size: var(--fs-small);
+  color: var(--muted);
+}
+.pager ol {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.pager .pg {
+  display: inline-grid;
+  place-items: center;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0 var(--sp-3);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  color: var(--ink);
+  font-size: var(--fs-small);
+  font-weight: 700;
+  text-decoration: none;
+}
+.pager a.pg:hover {
+  box-shadow: var(--shadow-card-hover);
+}
+.pager a.pg:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: 2px;
+}
+.pager .pg[aria-current='page'],
+.pager a.pg.active[aria-current='page'] {
+  border-color: var(--blue);
+  background: var(--blue);
+  color: var(--paper);
+}
+.pager .pg.off {
+  color: var(--muted);
+  border-style: dashed;
+}
+.pager .gap {
+  display: inline-grid;
+  place-items: center;
+  min-width: 24px;
+  color: var(--muted);
+}
+
+/* 용역 탭: 업체 한 줄 + 사업별 줄 */
+.vl-rows {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.vl-row {
+  display: grid;
+  gap: var(--sp-2);
+  padding: var(--sp-4) 0;
+  border-bottom: 1px solid var(--line);
+}
+.vl-head {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: var(--sp-1) var(--sp-4);
+}
+.vl-name {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  flex: 1 1 16rem;
+}
+.vl-name a {
+  font-size: var(--fs-lead);
+  font-weight: 900;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+  text-decoration: none;
+}
+.vl-name a:hover {
+  color: var(--blue);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.vl-name .kicker {
+  font-size: var(--fs-micro);
+  font-weight: 700;
+  color: var(--muted);
+}
+.vl-flag {
+  justify-self: start;
+  font-size: var(--fs-micro);
+  font-weight: 700;
+  padding: 1px 8px;
+  border-radius: 4px;
+  background: var(--bad-soft);
+  color: var(--bad);
+}
+.vl-sum {
+  display: grid;
+  justify-items: end;
+  font-size: var(--fs-micro);
+  color: var(--muted);
+}
+.vl-sum b {
+  font-size: var(--fs-lead);
+  color: var(--ink);
+}
+.vl-engs {
+  display: grid;
+  gap: var(--sp-1);
+  margin: 0;
+  padding: 0 0 0 var(--sp-3);
+  list-style: none;
+  border-left: 2px solid var(--line);
+}
+.vl-eng {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 2px var(--sp-3);
+  align-items: center;
+  padding: var(--sp-1) 0;
+  font-size: var(--fs-small);
+}
+.vl-eng .what {
+  display: grid;
+  min-width: 0;
+  grid-column: 1 / -1;
+}
+.vl-eng .what a {
+  font-weight: 700;
+  color: var(--ink);
+}
+.vl-eng .role {
+  color: var(--muted);
+  font-size: var(--fs-micro);
+}
+.vl-eng .money {
+  font-weight: 700;
+}
+.vl-eng .verdict .none {
+  font-size: var(--fs-micro);
+  color: var(--muted);
+}
+.vl-search {
+  display: flex;
+  gap: var(--sp-1);
+}
+.vl-search input {
+  min-height: 44px;
+  min-width: 0;
+  width: 14rem;
+  padding: 0 14px;
+  border: 1px solid var(--bar);
+  border-radius: var(--r-md);
+  background: var(--paper);
+  color: var(--ink);
+  font: 500 var(--fs-small) var(--font-body);
+}
+.vl-search input:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: 1px;
+}
+.vl-search button {
+  min-height: 44px;
+  padding: 0 var(--sp-4);
+  border: 1px solid var(--ink);
+  border-radius: var(--r-md);
+  background: var(--ink);
+  color: var(--paper);
+  font: 700 var(--fs-small) var(--font-body);
+}
+
 @media (min-width: 720px) {
+  .vl-eng {
+    grid-template-columns: minmax(0, 1fr) 7rem 6rem 8rem;
+  }
+  .vl-eng .what {
+    grid-column: auto;
+  }
+  .vl-eng .money {
+    text-align: right;
+  }
   .prog-row {
     grid-template-columns:
       minmax(0, 2.2fr) minmax(0, 1.3fr) minmax(0, 0.9fr) minmax(0, 1.2fr)

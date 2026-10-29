@@ -96,6 +96,7 @@ function SiteHeader() {
         </Link>
         <nav aria-label="주 메뉴" className="site-nav">
           <Link to="/programs">사업</Link>
+          <Link to="/vendors">용역</Link>
           <Link
             to="/orgs"
             search={{ view: 'ministries' }}

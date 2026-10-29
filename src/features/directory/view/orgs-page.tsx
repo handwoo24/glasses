@@ -29,7 +29,8 @@ export function OrgsPage({ orgs, view }: OrgsPageProps) {
           <h1>기관</h1>
           <p className="rp-lede">
             사업을 맡은 기관을 고르면 그 기관의 평가 현황과 평가 대상 사업이
-            나옵니다. 지금은 2026 예산 소관인 부처·국가기관 {ministries.length}
+            나옵니다. 지금은 2026 예산 소관인 부처와 국가기관{' '}
+            {ministries.length}
             곳과 지자체 {local.length}곳을 목록에 올렸습니다.
           </p>
         </header>
@@ -110,7 +111,7 @@ function OrgGrid({
             params={{ orgId: o.id }}
             className={o.published > 0 ? 'org-chip on' : 'org-chip'}
           >
-            <b>{o.name}</b>
+            <b title={o.name}>{o.name}</b>
             <span>
               {o.type} · 평가 {o.published}
               {o.cards > 0 && ` · 대상 ${o.cards}`}

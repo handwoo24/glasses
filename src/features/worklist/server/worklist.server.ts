@@ -21,6 +21,8 @@ import {
   linesByCode,
   orgCatalog,
 } from '#/features/directory/server/catalog.server'
+import { vendorVerdict } from '#/features/vendors/list'
+import type { Engagement, VendorListItem } from '#/features/vendors/list'
 import { stageOf } from '../stage'
 import type { WorkStage, SubjectProgress } from '../stage'
 
@@ -375,4 +377,54 @@ export async function readVendorPage(
     registry: all.vendorRegistry.get(bizno) ?? null,
     engagements,
   }
+}
+
+/** 용역 탭: 평가 대상 사업에 업체 카드가 있는 업체 전체. 사업자등록번호 하나가 한 줄 */
+export async function readVendorList(): Promise<{
+  items: Array<VendorListItem>
+  orgs: Array<{ id: string; name: string; region?: string }>
+}> {
+  const all = await snapshot()
+  const programs = new Map(all.programs.map((p) => [`programs/${p.id}`, p]))
+  const byBizno = new Map<string, Array<Engagement>>()
+  const names = new Map<string, string>()
+  for (const { program, bizno, card } of all.vendorCards) {
+    const p = programs.get(program)
+    const org = p ? all.orgs.get(p.org) : undefined
+    const path = `${program}/vendors/${bizno}`
+    const summary = all.publishedVendors.get(path)?.summary ?? null
+    const e: Engagement = {
+      program,
+      programName: p?.name ?? program,
+      org: p?.org ?? '',
+      orgName: org?.name ?? '',
+      region: p?.region ?? org?.region,
+      role: card.role,
+      amount: card.contracts.reduce((s, c) => s + c.amount, 0),
+      contracts: card.contracts.length,
+      stage: stageOf(progressOf(all, path)),
+      summary,
+      verdict: summary ? vendorVerdict(summary) : null,
+    }
+    byBizno.set(bizno, [...(byBizno.get(bizno) ?? []), e])
+    names.set(bizno, card.name)
+  }
+  const items = [...byBizno].map(([bizno, engagements]): VendorListItem => {
+    const reg = all.vendorRegistry.get(bizno)
+    return {
+      bizno,
+      name: reg?.name ?? names.get(bizno) ?? bizno,
+      type: reg?.type,
+      home: reg?.region,
+      sanctions: reg?.sanctions,
+      engagements: [...engagements].sort((a, b) => b.amount - a.amount),
+      amount: engagements.reduce((s, e) => s + e.amount, 0),
+    }
+  })
+  const orgIds = new Set(items.flatMap((v) => v.engagements.map((e) => e.org)))
+  const orgs = [...orgIds].flatMap((id) => {
+    const o = all.orgs.get(id)
+    return o ? [{ id, name: o.name, region: o.region }] : []
+  })
+  return { items, orgs }
 }

@@ -6,6 +6,7 @@ import { AXIS_STATUSES } from '#/features/reports/axes'
 import type { AxisStatus } from '#/features/reports/axes'
 import type { ReportSummary } from '#/features/reports/summary'
 import { ORG_ID } from '#/pipeline/schemas'
+import { PageSchema } from './paging'
 import type { Org } from '#/pipeline/schemas'
 
 /** 시도 행정구역 코드 2자리 → 이름 (행정표준코드관리시스템 법정동 코드) */
@@ -52,6 +53,8 @@ export const ProgramsSearchSchema = z.object({
     .optional()
     .catch(undefined),
   ministry: z.coerce.string().regex(ORG_ID).optional().catch(undefined),
+  /** 기관 하나 (기관 페이지의 ‘더 보기’) */
+  org: z.coerce.string().regex(ORG_ID).optional().catch(undefined),
   field: z.string().min(1).optional().catch(undefined),
   verdict: z.enum(AXIS_STATUSES).optional().catch(undefined),
   kind: z
@@ -62,6 +65,7 @@ export const ProgramsSearchSchema = z.object({
     .enum(Object.keys(LIST_SORTS) as [ListSort, ...Array<ListSort>])
     .optional()
     .catch(undefined),
+  page: PageSchema,
 })
 export type ProgramsSearch = z.infer<typeof ProgramsSearchSchema>
 
@@ -128,6 +132,7 @@ export function filterReports(
     (r) =>
       (!search.region || r.region?.startsWith(search.region)) &&
       (!search.ministry || r.ministries.includes(search.ministry)) &&
+      (!search.org || r.org === search.org) &&
       (!search.field || r.sector === search.field) &&
       (!search.verdict || r.overall === search.verdict) &&
       (!search.kind || r.kind === search.kind),

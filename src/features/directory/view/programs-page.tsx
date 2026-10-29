@@ -6,6 +6,8 @@ import { STATUS_INFO } from '#/features/reports/axes'
 import { KINDS, LIST_SORTS, SIDO, filterReports } from '../list'
 import type { ProgramsSearch } from '../list'
 import type { Directory } from '../server/directory.server'
+import { paginate } from '../paging'
+import { Pager } from './pager'
 import { ReportRows } from './report-rows'
 
 interface ProgramsPageProps {
@@ -19,14 +21,20 @@ const VERDICTS = ['fix', 'watch', 'on-track', 'unknown'] as const
 export function ProgramsPage({ data, search, today }: ProgramsPageProps) {
   const navigate = useNavigate({ from: '/programs/' })
   const rows = filterReports(data.reports, search, today)
+  const paged = paginate(rows, search.page)
+  // 필터가 바뀌면 첫 쪽으로
   const set = (patch: Partial<ProgramsSearch>) =>
-    void navigate({ search: (prev) => ({ ...prev, ...patch }) })
+    void navigate({
+      search: (prev) => ({ ...prev, ...patch, page: undefined }),
+    })
   const sido = search.region ? SIDO[search.region] : undefined
   const ministry = data.orgs.find((o) => o.id === search.ministry)
+  const org = data.orgs.find((o) => o.id === search.org)
   const scopeOrgs = data.orgs.filter(
     (o) =>
       (!search.region || o.region?.startsWith(search.region)) &&
-      (!search.ministry || o.id === search.ministry),
+      (!search.ministry || o.id === search.ministry) &&
+      (!search.org || o.id === search.org),
   )
   const regions = Object.entries(SIDO).filter(([code]) =>
     data.orgs.some((o) => o.region?.startsWith(code)),
@@ -41,7 +49,7 @@ export function ProgramsPage({ data, search, today }: ProgramsPageProps) {
           <span>사업 목록</span>
         </nav>
         <header className="rp-hero">
-          <h1>{ministry?.name ?? sido ?? '평가한 사업'}</h1>
+          <h1>{org?.name ?? ministry?.name ?? sido ?? '평가한 사업'}</h1>
           <p className="rp-lede">
             {scopeOrgs.length}개 기관 · 평가 {rows.length}건 · 평가 대상 사업{' '}
             {scopeOrgs.reduce((n, o) => n + o.cards, 0).toLocaleString('ko-KR')}
@@ -126,7 +134,10 @@ export function ProgramsPage({ data, search, today }: ProgramsPageProps) {
             </h2>
           </div>
           {rows.length > 0 ? (
-            <ReportRows rows={rows} today={today} showOrg />
+            <>
+              <ReportRows rows={paged.rows} today={today} showOrg />
+              <Pager paged={paged} label="사업 목록 쪽" />
+            </>
           ) : (
             <div className="empty-state">
               <p className="big">조건에 맞는 평가가 아직 없습니다</p>

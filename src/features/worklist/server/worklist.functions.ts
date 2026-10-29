@@ -2,7 +2,11 @@ import { createServerFn } from '@tanstack/react-start'
 import { z } from 'zod'
 import { ORG_ID } from '#/pipeline/schemas'
 import type { OrgWorklist, VendorPage } from './worklist.server'
-import { readOrgWorklist, readVendorPage } from './worklist.server'
+import {
+  readOrgWorklist,
+  readVendorList,
+  readVendorPage,
+} from './worklist.server'
 
 /** 기관 하나의 사업 목록과 작업 단계. 레지스트리에 없는 기관이면 null */
 export const fetchOrgWorklist = createServerFn({ method: 'GET' })
@@ -17,3 +21,8 @@ export const fetchVendorPage = createServerFn({ method: 'GET' })
   .handler(async ({ data }): Promise<VendorPage | null> =>
     readVendorPage(data.bizno),
   )
+
+/** 용역 탭: 평가 대상 사업에 참여한 업체 전체 */
+export const fetchVendorList = createServerFn({ method: 'GET' }).handler(
+  async () => readVendorList(),
+)

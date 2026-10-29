@@ -13,6 +13,8 @@ import type { BudgetEntry, DirOrg, OrgPage } from '../server/directory.server'
 import { ReportRows } from './report-rows'
 
 const DIST_ORDER = ['fix', 'watch', 'on-track', 'unknown'] as const
+/** 기관 페이지에 바로 보이는 리포트 줄 수. 나머지는 사업 목록(쪽 나눔)에서 */
+const ORG_ROWS = 10
 
 interface OrgPageViewProps {
   data: OrgPage
@@ -93,7 +95,20 @@ export function OrgPageView({ data, today }: OrgPageViewProps) {
             <h2 id="o-s1">평가한 사업</h2>
           </div>
           {own.length > 0 ? (
-            <ReportRows rows={own} today={today} />
+            <>
+              <ReportRows rows={own.slice(0, ORG_ROWS)} today={today} />
+              {own.length > ORG_ROWS && (
+                <p className="dir-none">
+                  <Link
+                    to="/programs"
+                    search={{ org: org.id }}
+                    className="dir-go"
+                  >
+                    {org.name}의 평가 {own.length}건 모두 보기 →
+                  </Link>
+                </p>
+              )}
+            </>
           ) : (
             <p className="dir-none">
               아직 게시한 리포트가 없습니다.{' '}
@@ -113,7 +128,24 @@ export function OrgPageView({ data, today }: OrgPageViewProps) {
               <h2 id="o-s-nat">국고보조 사업과 지역별 시행</h2>
             </div>
             {regional.length > 0 ? (
-              <ReportRows rows={regional} today={today} showOrg />
+              <>
+                <ReportRows
+                  rows={regional.slice(0, ORG_ROWS)}
+                  today={today}
+                  showOrg
+                />
+                {regional.length > ORG_ROWS && (
+                  <p className="dir-none">
+                    <Link
+                      to="/programs"
+                      search={{ ministry: org.id }}
+                      className="dir-go"
+                    >
+                      지역 시행 {regional.length}건 모두 보기 →
+                    </Link>
+                  </p>
+                )}
+              </>
             ) : (
               <p className="dir-none">
                 평가한 지역 시행 사업이 없습니다. 지역 사업 카드가 이 부처의
@@ -365,7 +397,7 @@ function OrgCard({ o, k }: { o: DirOrg; k: string }) {
   return (
     <Link to="/orgs/$orgId" params={{ orgId: o.id }} className="rel-card">
       <span className="k">{k}</span>
-      <b>{o.name}</b>
+      <b title={o.name}>{o.name}</b>
       <span className="s">
         {o.type} · 평가 {o.published}
         {o.cards > 0 && ` · 대상 ${o.cards}`}
